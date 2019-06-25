@@ -43,7 +43,7 @@ public Publisher<String> publishers() {
 
 == Reactive Messaging
 // tag::update_1_4[]
-Quarkus relies on MicroProfile Reactive Messaging spec (https://github.com/eclipse/microprofile-reactive-messaging) to implement reactive messaging streams.
+Quarkus relies on MicroProfile https://github.com/eclipse/microprofile-reactive-messaging[Reactive Messaging spec] to implement reactive messaging streams.
 
 [source, bash]
 ----
