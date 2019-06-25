@@ -133,6 +133,10 @@ Quarkus can expose its API description as https://swagger.io/specification/[Open
 
 Then you only need to access to `/openapi` to get OpenAPI v3 spec of services.
 
+// tag::update_3_5[]
+You can update the OpenApi path by setting `quarkus.smallrye-openapi.path` property.
+// end::update_3_5[]
+
 Also, in case of starting Quarkus application in `dev` or `test` mode, Swagger UI is accessible at `/swagger-ui`.
 If you want to use it in production mode you need to set `quarkus.swagger-ui.always-include` property to `true`.
 
@@ -214,8 +218,8 @@ a|`mailer.from`
 a|Default address.
 
 a|`mailer.mock`
-|false
-|Emails not sent, just printed.
+a|false in `prod`, true in `dev` and `test`.
+|Emails not sent, just printed and stored in a `MockMailbox` bean.
 
 a|`mailer.bounce-address`
 |
@@ -281,4 +285,75 @@ a|`mailer.key-store-password`
 |
 |Key store password.
 |===
+
+// tag::update_3_7[]
+
+*Testing*
+
+If `quarkus.mailer.mock` is set to `true`, which is the default value in `dev` and `test` mode, you can inject `MockMailbox` to get the sent messages.
+
+[source, java]
+----
+@Inject
+MockMailbox mailbox;
+
+@BeforeEach
+void init() {
+    mailbox.clear();
+}
+
+List<Mail> sent = mailbox
+                    .getMessagesSentTo("to@acme.org");
+----
+// end::update_3_7[]
+
 // end::update_2_5[]
+
+<<<
+
+== Scheduled Tasks
+// tag::update_3_2[]
+You can schedule periodic tasks with Quarkus.
+
+[source, java]
+----
+@ApplicationScoped
+public class CounterBean {
+
+    @Scheduled(every="10s")
+    void increment() {}
+
+    @Scheduled(cron="0 15 10 * * ?")
+    void morningTask() {}
+}
+----
+
+`every` and `cron` parameters can be surrounded with `{}` and the value is used as config property to get the value. 
+
+[source java]
+----
+@Scheduled(cron = "{morning.check.cron.expr}")
+void morningTask() {}
+----
+
+And configure the property into `application.properties`:
+
+[source, properties]
+----
+morning.check.cron.expr=0 15 10 * * ?
+----
+// end::update_3_2[]
+
+== Kogito
+// tag::update_3_9[]
+Quarkus integrates with http://www.kiegroup.org/[Kogito], a next-generation business automation toolkit from Drools and jBPM projects for adding business automation capabilities.
+
+To start using it you only need to add the next extension:
+
+[source, bash]
+----
+./mvnw quarkus:add-extension 
+  -Dextensions="kogito"
+----
+
+// end::update_3_9[]

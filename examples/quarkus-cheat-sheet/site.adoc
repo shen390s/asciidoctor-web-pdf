@@ -15,6 +15,68 @@ In this page you can either read what has been added in each version of the chea
 [[whatsnew]]
 == What's New in Cheat-Sheet
 
+=== Version 0.17.0
+
+.Hibernate Search
+[%collapsible]
+====
+include::persistence.adoc[tag=update_3_1]
+====
+
+.Scheduled Tasks
+[%collapsible]
+====
+include::misc.adoc[tag=update_3_2]
+====
+
+.HTTP Filters
+[%collapsible]
+====
+include::network.adoc[tag=update_3_3]
+====
+
+.MicroProfile Health 2.0
+[%collapsible]
+====
+include::network.adoc[tag=update_3_4]
+====
+
+.Custom OpenAPI path
+[%collapsible]
+====
+include::misc.adoc[tag=update_3_5]
+====
+
+.Mock annotaiton
+[%collapsible]
+====
+include::core.adoc[tag=update_3_6]
+====
+
+.Email Test
+[%collapsible]
+====
+include::misc.adoc[tag=update_3_7]
+====
+
+.Refactor on configuration properties and Kafka, AMQP, MQTT support
+[%collapsible]
+====
+include::reactive.adoc[tag=update_3_8]
+====
+
+.Kogito
+[%collapsible]
+====
+include::misc.adoc[tag=update_3_9]
+====
+
+.Kafka Streams
+[%collapsible]
+====
+include::reactive.adoc[tag=update_3_10]
+====
+
 === Version 0.16.0
 
 .Apache Camel

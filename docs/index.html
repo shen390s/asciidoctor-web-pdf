@@ -449,20 +449,894 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div id="preamble">
 <div class="sectionbody">
 <div class="paragraph">
-<p><span class="icon"><i class="fa fa-file-pdf-o"></i></span> <a href="https://github.com/lordofthejars/quarkus-cheat-sheet/releases/download/1.0.3/quarkus-cheat-sheet.pdf">Download the Cheat-Sheet as PDF</a>.</p>
+<p><span class="icon"><i class="fa fa-file-pdf-o"></i></span> <a href="https://github.com/lordofthejars/quarkus-cheat-sheet/releases/download/1.0.4/quarkus-cheat-sheet.pdf">Download the Cheat-Sheet as PDF</a>.</p>
 </div>
 <div class="paragraph">
 <p>Quarkus (<a href="https://quarkus.io/" class="bare">https://quarkus.io/</a>) is a Kubernetes Native Java stack tailored for GraalVM &amp; OpenJDK HotSpot, crafted from the best of breed Java libraries and standards.
 Also focused on developer experience, making things just work with little to no configuration and allowing to do live coding.</p>
 </div>
 <div class="paragraph">
-<p>In this page you can either read what has been added in each version of the cheat-sheet individually in <a href="#whatsnew">What&#8217;s New in Cheat-Sheet</a> section, see the full cheat-sheet as HTML <span class="icon"><i class="fa fa-html5"></i></span> <a href="#quarkuscheatsheet">Quarkus Cheat-Sheet</a> format or <span class="icon"><i class="fa fa-file-pdf-o"></i></span> <a href="https://github.com/lordofthejars/quarkus-cheat-sheet/releases/download/1.0.3/quarkus-cheat-sheet.pdf">download the full cheat-sheet as PDF</a>.</p>
+<p>In this page you can either read what has been added in each version of the cheat-sheet individually in <a href="#whatsnew">What&#8217;s New in Cheat-Sheet</a> section, see the full cheat-sheet as HTML <span class="icon"><i class="fa fa-html5"></i></span> <a href="#quarkuscheatsheet">Quarkus Cheat-Sheet</a> format or <span class="icon"><i class="fa fa-file-pdf-o"></i></span> <a href="https://github.com/lordofthejars/quarkus-cheat-sheet/releases/download/1.0.4/quarkus-cheat-sheet.pdf">download the full cheat-sheet as PDF</a>.</p>
 </div>
 </div>
 </div>
 <div class="sect1">
 <h2 id="whatsnew"><a class="anchor" href="#whatsnew"></a><a class="link" href="#whatsnew">What&#8217;s New in Cheat-Sheet</a></h2>
 <div class="sectionbody">
+<div class="sect2">
+<h3 id="_version_0_17_0"><a class="anchor" href="#_version_0_17_0"></a><a class="link" href="#_version_0_17_0">Version 0.17.0</a></h3>
+<details>
+<summary class="title">Hibernate Search</summary>
+<div class="content">
+<div class="paragraph">
+<p>Quarkus integrates with <a href="https://www.elastic.co/products/elasticsearch">Elasticsearch</a> to provide a full-featured full-text search using <a href="https://hibernate.org/search/">Hibernate Search</a> API.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">./mvnw quarkus:add-extension
+  -Dextensions="quarkus-hibernate-search-elasticsearch"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You need to annotate your model with Hibernate Search API to index it:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Entity
+@Indexed
+public class Author extends PanacheEntity {
+
+    @FullTextField(analyzer = "english")
+    public String bio;
+
+    @FullTextField(analyzer = "name")
+    @KeywordField(name = "firstName_sort",
+        sortable = Sortable.YES,
+        normalizer = "sort")
+    public String firstName;
+
+    @OneToMany
+    @IndexedEmbedded
+    public List&lt;Book&gt; books;
+
+}</code></pre>
+</div>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+It is not mandatory to use Panache.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>You need to define the analyzers and normalizers defined in annotations.
+You only need to implement <code>ElasticsearchAnalysisConfigurer</code> interface and configure it.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">public class MyQuarkusAnalysisConfigurer
+            implements ElasticsearchAnalysisConfigurer {
+
+    @Override
+    public void configure(
+        ElasticsearchAnalysisDefinitionContainerContext ctx)
+    {
+            ctx.analyzer("english").custom()
+                .withTokenizer("standard")
+                .withTokenFilters("asciifolding",
+                    "lowercase", "porter_stem");
+
+        ctx.normalizer("sort").custom()
+            .withTokenFilters("asciifolding", "lowercase");
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Use Hibernate Search in REST service:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">public class LibraryResource {
+
+    @Inject
+    EntityManager em;
+
+    @Transactional
+    public List&lt;Author&gt; searchAuthors(
+        @QueryParam("pattern") String pattern) {
+        return Search.getSearchSession(em)
+            .search(Author.class)
+            .predicate(f -&gt;
+                pattern == null || pattern.isEmpty() ?
+                    f.matchAll() :
+                    f.simpleQueryString()
+                        .onFields("firstName",
+                            "lastName", "books.title")
+                        .matching(pattern)
+                )
+            .sort(f -&gt; f.byField("lastName_sort")
+            .then().byField("firstName_sort"))
+            .fetchHits();
+    }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><strong>IMPORTANT</strong> If you are importing data without using Hibernate ORM, you need to index data by using <code>Search.getSearchSession(em).createIndexer()</code> <code>.startAndWait()</code> at startup time.</p>
+</div>
+<div class="paragraph">
+<p>You need to configure the extension in <code>application.properties</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="properties" class="language-properties hljs">quarkus.hibernate-search.elasticsearch.version=7
+quarkus.hibernate-search.elasticsearch.
+    analysis-configurer=MyQuarkusAnalysisConfigurer
+quarkus.hibernate-search.elasticsearch.
+    automatic-indexing.synchronization-strategy=searchable
+quarkus.hibernate-search.elasticsearch.
+    index-defaults.lifecycle.strategy=drop-and-create
+quarkus.hibernate-search.elasticsearch.
+    index-defaults.lifecycle.required-status=yellow</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>List of Hibernate-Elasticsearch properties prefixed with <code>quarkus.hibernate-search.elasticsearch</code>:</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Parameter</th>
+<th class="tableblock halign-left valign-top"> Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>backends</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Map of configuration of additional backends.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>version</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Version of Elasticsearch</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>analysis-configurer</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Class or name of the neab used to configure.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>hosts</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">List of Elasticsearch servers hosts.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>username</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Username for auth.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>password</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Password for auth.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>connection-timeout</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Duration of connection timeout.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>max-connections</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Max number of connections to servers.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>max-connections-per-route</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Max number of connections to server.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>indexes</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Per-index specific configuration.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>discovery.enabled</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Enables automatic discovery.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>discovery.refresh-interval</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Refresh interval of node list.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>discovery.default-scheme</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Scheme to be used for the new nodes.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>automatic-indexing.synchronization-strategy</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Status for which you wait before considering the operation completed (<code>queued</code>,<code>committed</code> or <code>searchable</code>).</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>automatic-indexing.enable-dirty-check</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">When enabled, re-indexing of is skipped if the changes are on properties that are not used when indexing.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>index-defaults.lifecycle.strategy</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Index lifecycle (<code>none</code>, <code>validate</code>, <code>update</code>, <code>create</code>, <code>drop-and-create</code>, <code>drop-abd-create-drop</code>)</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>index-defaults.lifecycle.required-status</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Minimal cluster status (<code>green</code>, <code>yellow</code>, <code>red</code>)</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>index-defaults.lifecycle.required-status-wait-timeout</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Waiting time before failing the bootstrap.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>index-defaults.refresh-after-write</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set if index should be refreshed after writes.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Possible annotations:</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Parameter</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>@Indexed</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Register entity as full text index</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>@FullTextField</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Full text search. Need to set an analyzer to split tokens.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>@KeywordField</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The string is kept as one single token but can be normalized.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>IndexedEmbedded</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Include the Book fields into the Author index.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>@ContainerExtraction</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Sets how to extract a value from container, e.g from a <code>Map</code>.</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>@DocumentId</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Map an unusual entity identifier to a document identifier.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>@GenericField</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Full text index for any supported type.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>@IdentifierBridgeRef</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Reference to the identifier bridge to use for a <code>@DocumentId</code>.</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>@IndexingDependency</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">How a dependency of the indexing process to a property should affect automatic reindexing.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>@ObjectPath</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>@ScaledNumberField</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>For <code>java.math.BigDecimal</code> or <code>java.math.BigInteger</code> that you need higher precision.</p>
+</div></div></td>
+</tr>
+</tbody>
+</table>
+</div>
+</details>
+<details>
+<summary class="title">Scheduled Tasks</summary>
+<div class="content">
+<div class="paragraph">
+<p>You can schedule periodic tasks with Quarkus.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@ApplicationScoped
+public class CounterBean {
+
+    @Scheduled(every="10s")
+    void increment() {}
+
+    @Scheduled(cron="0 15 10 * * ?")
+    void morningTask() {}
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>every</code> and <code>cron</code> parameters can be surrounded with <code>{}</code> and the value is used as config property to get the value.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>@Scheduled(cron = "{morning.check.cron.expr}")
+void morningTask() {}</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And configure the property into <code>application.properties</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="properties" class="language-properties hljs">morning.check.cron.expr=0 15 10 * * ?</code></pre>
+</div>
+</div>
+</div>
+</details>
+<details>
+<summary class="title">HTTP Filters</summary>
+<div class="content">
+<div class="paragraph">
+<p>HTTP request and response can be intercepted to manipulate the metadata (ie headers, parameters, media type, &#8230;&#8203;) or abort a request.
+You only need to implement the next <code>ContainerRequestFilter</code> and <code>ContainerResponseFilter</code> JAX-RS interfaces respectively.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Provider
+public class LoggingFilter
+        implements ContainerRequestFilter {
+
+    @Context
+    UriInfo info;
+
+    @Context
+    HttpServletRequest request;
+
+    @Override
+    public void filter(ContainerRequestContext context) {
+        final String method = context.getMethod();
+        final String path = info.getPath();
+        final String address = request.getRemoteAddr();
+        System.out.println("Request %s %s from IP %s",
+                method, path, address);
+    }
+
+}</code></pre>
+</div>
+</div>
+</div>
+</details>
+<details>
+<summary class="title">MicroProfile Health 2.0</summary>
+<div class="content">
+<div class="paragraph">
+<p>Quarkus relies on <a href="https://github.com/eclipse/microprofile-health">MicroProfile Health</a> spec to provide health checks.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">./mvnw quarkus:add-extension
+  -Dextensions="io.quarkus:quarkus-smallrye-health"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>By just adding this extension, an endpoint is registered to <code>/health</code> providing a default health check.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="json" class="language-json hljs">{
+    "status": "UP",
+    "checks": [
+    ]
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To create a custom health check you need to implement the <code>HealthCheck</code> interface and annotate either with <code>@Readiness</code> (ready to process requests) or <code>@Liveness</code> (is running) annotations.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Readiness
+public class DatabaseHealthCheck implements HealthCheck {
+    @Override
+    public HealthCheckResponse call() {
+        HealthCheckResponseBuilder responseBuilder =
+            HealthCheckResponse.named("Database conn");
+
+        try {
+            checkDatabaseConnection();
+            responseBuilder.withData("connection", true);
+            responseBuilder.up();
+        } catch (IOException e) {
+            // cannot access the database
+            responseBuilder.down()
+                    .withData("error", e.getMessage());
+        }
+        return responseBuilder.build();
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Builds the next output:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="json" class="language-json hljs">{
+    "status": "UP",
+    "checks": [
+        {
+            "name": "Database conn",
+            "status": "UP",
+            "data": {
+                "connection": true
+            }
+        }
+    ]
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Since health checks are CDI beans, you can do:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@ApplicationScoped
+public class DatabaseHealthCheck {
+
+    @Produces
+    @ApplicationScoped
+    @Liveness
+    HealthCheck check1() {
+      return () -&gt; HealthCheckResponse
+                    .named("successful-live").up()
+                    .build();
+    }
+    @Produces
+    @ApplicationScoped
+    @Readiness
+    HealthCheck check2() {
+      return () -&gt; HealthCheckResponse
+                    .named("successful-read").up()
+                    .build();
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You can ping liveness or readiness health checks individually by querying <code>/health/live</code> or <code>/health/ready</code>.</p>
+</div>
+</div>
+</details>
+<details>
+<summary class="title">Custom OpenAPI path</summary>
+<div class="content">
+<div class="paragraph">
+<p>You can update the OpenApi path by setting <code>quarkus.smallrye-openapi.path</code> property.</p>
+</div>
+</div>
+</details>
+<details>
+<summary class="title">Mock annotaiton</summary>
+<div class="content">
+<div class="paragraph">
+<p>A stereotype annotation <code>io.quarkus.test.Mock</code> is provided  declaring <code>@Alternative</code>, <code>@Priority(1)</code> and <code>@Dependent</code>.</p>
+</div>
+</div>
+</details>
+<details>
+<summary class="title">Email Test</summary>
+<div class="content">
+<div class="paragraph">
+<p><strong>Testing</strong></p>
+</div>
+<div class="paragraph">
+<p>If <code>quarkus.mailer.mock</code> is set to <code>true</code>, which is the default value in <code>dev</code> and <code>test</code> mode, you can inject <code>MockMailbox</code> to get the sent messages.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Inject
+MockMailbox mailbox;
+
+@BeforeEach
+void init() {
+    mailbox.clear();
+}
+
+List&lt;Mail&gt; sent = mailbox
+                    .getMessagesSentTo("to@acme.org");</code></pre>
+</div>
+</div>
+</div>
+</details>
+<details>
+<summary class="title">Refactor on configuration properties and Kafka, AMQP, MQTT support</summary>
+<div class="content">
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Inject @Stream("generated-price")
+Emitter&lt;String&gt; emitter;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><strong>Patterns</strong></p>
+</div>
+<div class="paragraph">
+<p><em>REST API &#8594; Message</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Inject @Stream(“in”)
+Emitter&lt;String&gt; emitter;
+
+emitter.send(message);</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>Message &#8594; Message</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Incoming(“in”)
+@Outgoing(“out”)
+public String process(String in) {
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>Message &#8594; SSE</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Inject @Stream(“out”)
+Publisher&lt;String&gt; result;
+
+@GET
+@Produces(SERVER_SENT_EVENTS)
+public Publisher&lt;String&gt; stream() {
+    return result;
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>Message &#8594; Business Logic</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@ApplicationScoped
+public class ReceiverMessages {
+    @Incoming("prices")
+    public void print(String price) {
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Possible implementations are:</p>
+</div>
+<div class="paragraph">
+<p><strong>In-Memory</strong></p>
+</div>
+<div class="paragraph">
+<p>If the stream is not configured then it is assumed to be an in-memory stream, if not then stream type is defined by <code>connector</code> field.</p>
+</div>
+<div class="paragraph">
+<p><strong>Kafka</strong></p>
+</div>
+<div class="paragraph">
+<p>To integrate with Kafka you need to add next extensions:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">mvn quarkus:add-extension
+    -Dextensions="
+    io.quarkus:quarkus-smallrye-reactive-messaging-kafka"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Then <code>@Outgoing</code>, <code>@Incoming</code> or <code>@Stream</code> can be used.</p>
+</div>
+<div class="paragraph">
+<p>Kafka configuration schema: <code>mp.messaging.[outgoing|incoming].{stream-name}.&lt;property&gt;=&lt;value&gt;</code>.</p>
+</div>
+<div class="paragraph">
+<p>The <code>connector</code> type is <code>smallrye-kafka</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="properties" class="language-properties hljs">mp.messaging.outgoing.generated-price.connector=
+    smallrye-kafka
+mp.messaging.outgoing.generated-price.topic=
+    prices
+mp.messaging.outgoing.generated-price.bootstrap.servers=
+    localhost:9092
+mp.messaging.outgoing.generated-price.value.serializer=
+    org.apache.kafka.common.serialization.IntegerSerializer
+
+mp.messaging.incoming.prices.connector=
+    smallrye-kafka
+mp.messaging.incoming.prices.value.deserializer=
+    org.apache.kafka.common.serialization.IntegerDeserializer</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>A complete list of supported properties are in Kafka site. For the <a href="https://kafka.apache.org/documentation/#producerconfigs">producer</a> and for <a href="https://kafka.apache.org/documentation/#consumerconfigs">consumer</a></p>
+</div>
+<div class="paragraph">
+<p><em>JSON-B Serializer/Deserializer</em></p>
+</div>
+<div class="paragraph">
+<p>You can use JSON-B to serialize/deserialize objects.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">./mvnw quarkus:add-extension
+    -Dextensions="quarkus-kafka-client"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To serialize you can use <code>io.quarkus.kafka.client.serialization.JsonbSerializer</code>.</p>
+</div>
+<div class="paragraph">
+<p>To deserialize you need to extend <code>io.quarkus.kafka.client.serialization.JsonbDeserializer</code> and provide a type.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">public class BeerDeserializer
+    extends JsonbDeserializer&lt;Beer&gt; {
+
+    public BeerDeserializer() {
+        super(Beer.class);
+    }
+
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><strong>AMQP</strong></p>
+</div>
+<div class="paragraph">
+<p>To integrate with AMQP you need to add next extensions:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">./mvnw quarkus:add-extension
+    -Dextensions="reactive-messaging-amqp"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Then <code>@Outgoing</code>, <code>@Incoming</code> or <code>@Stream</code> can be used.</p>
+</div>
+<div class="paragraph">
+<p>AMQP configuration schema: <code>mp.messaging.[outgoing|incoming].{stream-name}.&lt;property&gt;=&lt;value&gt;</code>.
+Special properties <code>amqp-username</code> and <code>amqp-password</code> are used to configure AMQP broker credentials.</p>
+</div>
+<div class="paragraph">
+<p>The connector type is <code>smallrye-amqp</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="properties" class="language-properties hljs">amqp-username=quarkus
+amqp-password=quarkus
+# write
+mp.messaging.outgoing.generated-price.connector=
+    smallrye-amqp
+mp.messaging.outgoing.generated-price.address=
+    prices
+mp.messaging.outgoing.generated-price.durable=
+    true
+# read
+mp.messaging.incoming.prices.connector=
+    smallrye-amqp
+mp.messaging.incoming.prices.durable=
+    true</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>A complete list of supported properties for <a href="https://smallrye.io/smallrye-reactive-messaging/#_interacting_using_amqp">AMQP</a>.</p>
+</div>
+<div class="paragraph">
+<p><strong>MQTT</strong></p>
+</div>
+<div class="paragraph">
+<p>To integrate with MQTT you need to add next extensions:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">./mvnw quarkus:add-extension
+    -Dextensions="vertx, smallrye-reactive-streams-operators
+        smallrye-reactive-messaging"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And add <code>io.smallrye.reactive:smallrye-reactive-messaging-mqtt-1.0:0.0.10</code> dependency in your build tool.</p>
+</div>
+<div class="paragraph">
+<p>Then <code>@Outgoing</code>, <code>@Incoming</code> or <code>@Stream</code> can be used.</p>
+</div>
+<div class="paragraph">
+<p>MQTT configuration schema: <code>mp.messaging.[outgoing|incoming].{stream-name}.&lt;property&gt;=&lt;value&gt;</code>.</p>
+</div>
+<div class="paragraph">
+<p>The connector type is <code>smallrye-mqtt</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="properties" class="language-properties hljs">mp.messaging.outgoing.topic-price.type=
+    smallrye-mqtt
+mp.messaging.outgoing.topic-price.topic=
+    prices
+mp.messaging.outgoing.topic-price.host=
+    localhost
+mp.messaging.outgoing.topic-price.port=
+    1883
+mp.messaging.outgoing.topic-price.auto-generated-client-id=
+    true
+
+mp.messaging.incoming.prices.type=
+    smallrye-mqtt
+mp.messaging.incoming.prices.topic=
+    prices
+mp.messaging.incoming.prices.host=
+    localhost
+mp.messaging.incoming.prices.port=
+    1883
+mp.messaging.incoming.prices.auto-generated-client-id=
+    true</code></pre>
+</div>
+</div>
+</div>
+</details>
+<details>
+<summary class="title">Kogito</summary>
+<div class="content">
+<div class="paragraph">
+<p>Quarkus integrates with <a href="http://www.kiegroup.org/">Kogito</a>, a next-generation business automation toolkit from Drools and jBPM projects for adding business automation capabilities.</p>
+</div>
+<div class="paragraph">
+<p>To start using it you only need to add the next extension:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">./mvnw quarkus:add-extension
+  -Dextensions="kogito"</code></pre>
+</div>
+</div>
+</div>
+</details>
+<details>
+<summary class="title">Kafka Streams</summary>
+<div class="content">
+<div class="paragraph">
+<p>Create streaming queries with the Kafka Streams API.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">./mvnw quarkus:add-extension
+  -Dextensions="kafka-streams"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You need to initialize <code>org.apache.kafka.streams.KafkaStreams</code> on startup:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">private KafkaStreams streams;
+
+void onStart(@Observes StartupEvent ev) {
+    Properties props = new Properties();
+    // ...
+    StreamsBuilder builder = new StreamsBuilder();
+    // ...
+    streams = new KafkaStreams(builder.build(), props);
+
+    executor = Executors.newSingleThreadExecutor();
+    executor.execute(() -&gt; {
+        waitForTopicsToBeCreated(bootstrapServers);
+        streams.start();
+    });
+}
+
+void onStop(@Observes ShutdownEvent ev) {
+    streams.close();
+    executor.shutdown();
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And then you can use it.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">public List getData() {
+    return streams.allMetadataForStore("")
+                .stream()
+                .map()
+                .collect()
+}</code></pre>
+</div>
+</div>
+</div>
+</details>
+</div>
 <div class="sect2">
 <h3 id="_version_0_16_0"><a class="anchor" href="#_version_0_16_0"></a><a class="link" href="#_version_0_16_0">Version 0.16.0</a></h3>
 <details>
@@ -651,6 +1525,9 @@ public class ChatSocket {
 <p>Then you only need to access to <code>/openapi</code> to get OpenAPI v3 spec of services.</p>
 </div>
 <div class="paragraph">
+<p>You can update the OpenApi path by setting <code>quarkus.smallrye-openapi.path</code> property.</p>
+</div>
+<div class="paragraph">
 <p>Also, in case of starting Quarkus application in <code>dev</code> or <code>test</code> mode, Swagger UI is accessible at <code>/swagger-ui</code>.
 If you want to use it in production mode you need to set <code>quarkus.swagger-ui.always-include</code> property to <code>true</code>.</p>
 </div>
@@ -787,8 +1664,10 @@ quarkus.mailer.password=....</code></pre>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p><code>mailer.mock</code></p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Emails not sent, just printed.</p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>false in <code>prod</code>, true in <code>dev</code> and <code>test</code>.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Emails not sent, just printed and stored in a <code>MockMailbox</code> bean.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
@@ -922,6 +1801,26 @@ quarkus.mailer.password=....</code></pre>
 </tr>
 </tbody>
 </table>
+<div class="paragraph">
+<p><strong>Testing</strong></p>
+</div>
+<div class="paragraph">
+<p>If <code>quarkus.mailer.mock</code> is set to <code>true</code>, which is the default value in <code>dev</code> and <code>test</code> mode, you can inject <code>MockMailbox</code> to get the sent messages.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Inject
+MockMailbox mailbox;
+
+@BeforeEach
+void init() {
+    mailbox.clear();
+}
+
+List&lt;Mail&gt; sent = mailbox
+                    .getMessagesSentTo("to@acme.org");</code></pre>
+</div>
+</div>
 </div>
 </details>
 <details>
@@ -1252,12 +2151,10 @@ public class DeveloperRepository
 <pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Path("/api")
 @RegisterRestClient
 public interface WorldClockService {
-
     @GET @Path("/json/cet/now")
     @Produces(MediaType.APPLICATION_JSON)
     @Retry(maxRetries = 2)
     WorldClock getNow();
-
 }</code></pre>
 </div>
 </div>
@@ -1287,12 +2184,10 @@ public String fallbackMethod() {
             implements FallbackHandler&lt;String&gt; {
     @Override
     public String handle(ExecutionContext context) {
-        return "It could be worse";
     }
 }</code></pre>
 </div>
 </div>
-<div style="page-break-after: always;"></div>
 <div class="paragraph">
 <p>And set it in the annotation as value <code>@Fallback(RecoverFallback.class)</code>.</p>
 </div>
@@ -1389,7 +2284,6 @@ WorldClock getNow(){}</code></pre>
 </tr>
 </tbody>
 </table>
-<div style="page-break-after: always;"></div>
 <div class="paragraph">
 <p>You can override annotation parameters via configuration file using property <code>[classname/methodname/]annotation/parameter</code>:</p>
 </div>
@@ -1476,6 +2370,9 @@ public class ProducerData {
 </div>
 </div>
 <div class="paragraph">
+<p>If you want to dispatch to all subscribers you can annotate the method with <code>@Broadcast</code>.</p>
+</div>
+<div class="paragraph">
 <p>Consumes generated data from <code>my-in-memory</code> stream.</p>
 </div>
 <div class="listingblock">
@@ -1498,8 +2395,73 @@ public class ConsumerData {
 @Stream("my-in-memory") Publisher&lt;Integer&gt; randomRumbers;</code></pre>
 </div>
 </div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Inject @Stream("generated-price")
+Emitter&lt;String&gt; emitter;</code></pre>
+</div>
+</div>
 <div class="paragraph">
-<p>Possible return types:</p>
+<p><strong>Patterns</strong></p>
+</div>
+<div class="paragraph">
+<p><em>REST API &#8594; Message</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Inject @Stream(“in”)
+Emitter&lt;String&gt; emitter;
+
+emitter.send(message);</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>Message &#8594; Message</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Incoming(“in”)
+@Outgoing(“out”)
+public String process(String in) {
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>Message &#8594; SSE</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Inject @Stream(“out”)
+Publisher&lt;String&gt; result;
+
+@GET
+@Produces(SERVER_SENT_EVENTS)
+public Publisher&lt;String&gt; stream() {
+    return result;
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>Message &#8594; Business Logic</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@ApplicationScoped
+public class ReceiverMessages {
+    @Incoming("prices")
+    public void print(String price) {
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Possible implementations are:</p>
+</div>
+<div class="paragraph">
+<p><strong>In-Memory</strong></p>
+</div>
+<div class="paragraph">
+<p>If the stream is not configured then it is assumed to be an in-memory stream, if not then stream type is defined by <code>connector</code> field.</p>
 </div>
 <div class="paragraph">
 <p><strong>Kafka</strong></p>
@@ -1511,46 +2473,160 @@ public class ConsumerData {
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">mvn quarkus:add-extension
     -Dextensions="
-    io.quarkus:quarkus-smallrye-reactive-messaging-kafka,
-    io.quarkus:quarkus-vertx"</code></pre>
+    io.quarkus:quarkus-smallrye-reactive-messaging-kafka"</code></pre>
 </div>
 </div>
 <div class="paragraph">
 <p>Then <code>@Outgoing</code>, <code>@Incoming</code> or <code>@Stream</code> can be used.</p>
 </div>
 <div class="paragraph">
-<p>Kafka configuration schema: <code>smallrye.messaging.[sink|source].{stream-name}.&lt;property&gt;=&lt;value&gt;</code></p>
+<p>Kafka configuration schema: <code>mp.messaging.[outgoing|incoming].{stream-name}.&lt;property&gt;=&lt;value&gt;</code>.</p>
+</div>
+<div class="paragraph">
+<p>The <code>connector</code> type is <code>smallrye-kafka</code>.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="properties" class="language-properties hljs">smallrye.messaging.source.prices.type=
-    io.smallrye.reactive.messaging.kafka.Kafka
-smallrye.messaging.source.prices.topic=
+<pre class="highlightjs highlight"><code data-lang="properties" class="language-properties hljs">mp.messaging.outgoing.generated-price.connector=
+    smallrye-kafka
+mp.messaging.outgoing.generated-price.topic=
     prices
-smallrye.messaging.source.prices.bootstrap.servers=
+mp.messaging.outgoing.generated-price.bootstrap.servers=
     localhost:9092
-smallrye.messaging.source.prices.key.deserializer=
-    org.apache.kafka.common.serialization.StringDeserializer
-smallrye.messaging.source.prices.value.deserializer=
-    org.apache.kafka.common.serialization.IntegerDeserializer
-smallrye.messaging.source.prices.group.id=
-    my-group-id</code></pre>
+mp.messaging.outgoing.generated-price.value.serializer=
+    org.apache.kafka.common.serialization.IntegerSerializer
+
+mp.messaging.incoming.prices.connector=
+    smallrye-kafka
+mp.messaging.incoming.prices.value.deserializer=
+    org.apache.kafka.common.serialization.IntegerDeserializer</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>A complete list of supported properties are in Kafka site. For <a href="https://kafka.apache.org/documentation/#producerconfigs">producer</a> and for <a href="https://kafka.apache.org/documentation/#consumerconfigs">consumer</a></p>
+<p>A complete list of supported properties are in Kafka site. For the <a href="https://kafka.apache.org/documentation/#producerconfigs">producer</a> and for <a href="https://kafka.apache.org/documentation/#consumerconfigs">consumer</a></p>
 </div>
-<div class="admonitionblock important">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-important" title="Important"></i>
-</td>
-<td class="content">
-If the stream is not configured then it is assumed to be an in-memory stream.
-</td>
-</tr>
-</table>
+<div class="paragraph">
+<p><em>JSON-B Serializer/Deserializer</em></p>
+</div>
+<div class="paragraph">
+<p>You can use JSON-B to serialize/deserialize objects.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">./mvnw quarkus:add-extension
+    -Dextensions="quarkus-kafka-client"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To serialize you can use <code>io.quarkus.kafka.client.serialization.JsonbSerializer</code>.</p>
+</div>
+<div class="paragraph">
+<p>To deserialize you need to extend <code>io.quarkus.kafka.client.serialization.JsonbDeserializer</code> and provide a type.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">public class BeerDeserializer
+    extends JsonbDeserializer&lt;Beer&gt; {
+
+    public BeerDeserializer() {
+        super(Beer.class);
+    }
+
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><strong>AMQP</strong></p>
+</div>
+<div class="paragraph">
+<p>To integrate with AMQP you need to add next extensions:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">./mvnw quarkus:add-extension
+    -Dextensions="reactive-messaging-amqp"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Then <code>@Outgoing</code>, <code>@Incoming</code> or <code>@Stream</code> can be used.</p>
+</div>
+<div class="paragraph">
+<p>AMQP configuration schema: <code>mp.messaging.[outgoing|incoming].{stream-name}.&lt;property&gt;=&lt;value&gt;</code>.
+Special properties <code>amqp-username</code> and <code>amqp-password</code> are used to configure AMQP broker credentials.</p>
+</div>
+<div class="paragraph">
+<p>The connector type is <code>smallrye-amqp</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="properties" class="language-properties hljs">amqp-username=quarkus
+amqp-password=quarkus
+# write
+mp.messaging.outgoing.generated-price.connector=
+    smallrye-amqp
+mp.messaging.outgoing.generated-price.address=
+    prices
+mp.messaging.outgoing.generated-price.durable=
+    true
+# read
+mp.messaging.incoming.prices.connector=
+    smallrye-amqp
+mp.messaging.incoming.prices.durable=
+    true</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>A complete list of supported properties for <a href="https://smallrye.io/smallrye-reactive-messaging/#_interacting_using_amqp">AMQP</a>.</p>
+</div>
+<div class="paragraph">
+<p><strong>MQTT</strong></p>
+</div>
+<div class="paragraph">
+<p>To integrate with MQTT you need to add next extensions:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">./mvnw quarkus:add-extension
+    -Dextensions="vertx, smallrye-reactive-streams-operators
+        smallrye-reactive-messaging"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And add <code>io.smallrye.reactive:smallrye-reactive-messaging-mqtt-1.0:0.0.10</code> dependency in your build tool.</p>
+</div>
+<div class="paragraph">
+<p>Then <code>@Outgoing</code>, <code>@Incoming</code> or <code>@Stream</code> can be used.</p>
+</div>
+<div class="paragraph">
+<p>MQTT configuration schema: <code>mp.messaging.[outgoing|incoming].{stream-name}.&lt;property&gt;=&lt;value&gt;</code>.</p>
+</div>
+<div class="paragraph">
+<p>The connector type is <code>smallrye-mqtt</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="properties" class="language-properties hljs">mp.messaging.outgoing.topic-price.type=
+    smallrye-mqtt
+mp.messaging.outgoing.topic-price.topic=
+    prices
+mp.messaging.outgoing.topic-price.host=
+    localhost
+mp.messaging.outgoing.topic-price.port=
+    1883
+mp.messaging.outgoing.topic-price.auto-generated-client-id=
+    true
+
+mp.messaging.incoming.prices.type=
+    smallrye-mqtt
+mp.messaging.incoming.prices.topic=
+    prices
+mp.messaging.incoming.prices.host=
+    localhost
+mp.messaging.incoming.prices.port=
+    1883
+mp.messaging.incoming.prices.auto-generated-client-id=
+    true</code></pre>
+</div>
 </div>
 </div>
 </details>
@@ -1852,7 +2928,7 @@ flyway.migrate();</code></pre>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">./mvnw quarkus:add-extension
-  -Dextensions="io.quarkus:quarkus-smallrye-health"</code></pre>
+  -Dextensions="io.quarkus:quarkus-reactive-pg-client"</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2007,13 +3083,14 @@ public void testLambda() {
 <h2 id="quarkuscheatsheet"><a class="anchor" href="#quarkuscheatsheet"></a><a class="link" href="#quarkuscheatsheet">Quarkus Cheat-Sheet</a></h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p><span class="icon"><i class="fa fa-file-pdf-o"></i></span> <a href="https://github.com/lordofthejars/quarkus-cheat-sheet/releases/download/1.0.3/quarkus-cheat-sheet.pdf">Download the Cheat-Sheet as PDF</a>.</p>
+<p><span class="icon"><i class="fa fa-file-pdf-o"></i></span> <a href="https://github.com/lordofthejars/quarkus-cheat-sheet/releases/download/1.0.4/quarkus-cheat-sheet.pdf">Download the Cheat-Sheet as PDF</a>.</p>
 </div>
 <div id="toc" class="toc">
 <div id="toctitle" class="title">Table of Contents</div>
 <ul class="sectlevel1">
 <li><a href="#whatsnew">What&#8217;s New in Cheat-Sheet</a>
 <ul class="sectlevel2">
+<li><a href="#_version_0_17_0">Version 0.17.0</a></li>
 <li><a href="#_version_0_16_0">Version 0.16.0</a></li>
 <li><a href="#_version_0_15_0">Version 0.15.0</a></li>
 </ul>
@@ -2033,11 +3110,14 @@ public void testLambda() {
 <li><a href="#_testing">Testing</a></li>
 <li><a href="#_persistence">Persistence</a></li>
 <li><a href="#_flyway">Flyway</a></li>
+<li><a href="#_hibernate_search">Hibernate Search</a></li>
 <li><a href="#_reactive_programming">Reactive Programming</a></li>
 <li><a href="#_reactive_messaging">Reactive Messaging</a></li>
+<li><a href="#_kafka_streams">Kafka Streams</a></li>
 <li><a href="#_reactive_postgresql_client">Reactive PostgreSQL Client</a></li>
 <li><a href="#_jwt">JWT</a></li>
 <li><a href="#_keycloak">Keycloak</a></li>
+<li><a href="#_http_filters">HTTP Filters</a></li>
 <li><a href="#_cors_filter">CORS Filter</a></li>
 <li><a href="#_fault_tolerance">Fault Tolerance</a></li>
 <li><a href="#_observability">Observability</a></li>
@@ -2047,6 +3127,8 @@ public void testLambda() {
 <li><a href="#_websockets">WebSockets</a></li>
 <li><a href="#_openapi">OpenAPI</a></li>
 <li><a href="#_mail_sender">Mail Sender</a></li>
+<li><a href="#_scheduled_tasks">Scheduled Tasks</a></li>
+<li><a href="#_kogito">Kogito</a></li>
 <li><a href="#_resources">Resources</a></li>
 </ul>
 </li>
@@ -2059,7 +3141,7 @@ public void testLambda() {
 Also focused on developer experience, making things just work with little to no configuration and allowing to do live coding.</p>
 </div>
 <div class="paragraph">
-<p>Cheat-sheet tested with <strong>Quarkus 0.16.0</strong>.</p>
+<p>Cheat-sheet tested with <strong>Quarkus 0.17.0</strong>.</p>
 </div>
 </div>
 <div class="sect2">
@@ -2069,7 +3151,7 @@ Also focused on developer experience, making things just work with little to no 
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">mvn io.quarkus:quarkus-maven-plugin:0.16.0:create \
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">mvn io.quarkus:quarkus-maven-plugin:0.17.0:create \
     -DprojectGroupId=org.acme \
     -DprojectArtifactId=getting-started \
     -DclassName="org.acme.quickstart.GreetingResource" \
@@ -2176,10 +3258,10 @@ Optional&lt;String&gt; optionalMessage;</code></pre>
 <div class="ulist">
 <ul>
 <li>
-<p>Environment variables.</p>
+<p>Environment variables (<code>GREETINGS_MESSAGE</code>).</p>
 </li>
 <li>
-<p>System properties.</p>
+<p>System properties (<code>-Dgreetings.message</code>).</p>
 </li>
 <li>
 <p>Resources <code>src/main/resources/application.properties</code>.</p>
@@ -2743,7 +3825,7 @@ public interface WorldClockService {
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="proeprties" class="language-proeprties hljs">org.acme.quickstart.WorldClockService/mp-rest/url=
+<pre class="highlightjs highlight"><code data-lang="properties" class="language-properties hljs">org.acme.quickstart.WorldClockService/mp-rest/url=
         http://worldclockapi.com</code></pre>
 </div>
 </div>
@@ -2867,6 +3949,9 @@ URL url;</code></pre>
 </div>
 </div>
 <div class="paragraph">
+<p><strong>Mocking</strong></p>
+</div>
+<div class="paragraph">
 <p>If you need to provide an alternative implementation of a service (for testing purposes) you can do it by using CDI <code>@Alternative</code> annotation using it in the test service placed at <code>src/test/java</code>:</p>
 </div>
 <div class="listingblock">
@@ -2888,6 +3973,12 @@ This does not work when using native image testing.
 </td>
 </tr>
 </table>
+</div>
+<div class="paragraph">
+<p>A stereotype annotation <code>io.quarkus.test.Mock</code> is provided  declaring <code>@Alternative</code>, <code>@Priority(1)</code> and <code>@Dependent</code>.</p>
+</div>
+<div class="paragraph">
+<p><strong>Native Testing</strong></p>
 </div>
 <div class="paragraph">
 <p>To test native executables you can annotate the test with <code>@SubstrateTest</code>.</p>
@@ -3305,6 +4396,353 @@ flyway.migrate();</code></pre>
 </tr>
 </tbody>
 </table>
+</div>
+<div class="sect2">
+<h3 id="_hibernate_search"><a class="anchor" href="#_hibernate_search"></a><a class="link" href="#_hibernate_search">Hibernate Search</a></h3>
+<div class="paragraph">
+<p>Quarkus integrates with <a href="https://www.elastic.co/products/elasticsearch">Elasticsearch</a> to provide a full-featured full-text search using <a href="https://hibernate.org/search/">Hibernate Search</a> API.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">./mvnw quarkus:add-extension
+  -Dextensions="quarkus-hibernate-search-elasticsearch"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You need to annotate your model with Hibernate Search API to index it:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Entity
+@Indexed
+public class Author extends PanacheEntity {
+
+    @FullTextField(analyzer = "english")
+    public String bio;
+
+    @FullTextField(analyzer = "name")
+    @KeywordField(name = "firstName_sort",
+        sortable = Sortable.YES,
+        normalizer = "sort")
+    public String firstName;
+
+    @OneToMany
+    @IndexedEmbedded
+    public List&lt;Book&gt; books;
+
+}</code></pre>
+</div>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+It is not mandatory to use Panache.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>You need to define the analyzers and normalizers defined in annotations.
+You only need to implement <code>ElasticsearchAnalysisConfigurer</code> interface and configure it.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">public class MyQuarkusAnalysisConfigurer
+            implements ElasticsearchAnalysisConfigurer {
+
+    @Override
+    public void configure(
+        ElasticsearchAnalysisDefinitionContainerContext ctx)
+    {
+            ctx.analyzer("english").custom()
+                .withTokenizer("standard")
+                .withTokenFilters("asciifolding",
+                    "lowercase", "porter_stem");
+
+        ctx.normalizer("sort").custom()
+            .withTokenFilters("asciifolding", "lowercase");
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Use Hibernate Search in REST service:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">public class LibraryResource {
+
+    @Inject
+    EntityManager em;
+
+    @Transactional
+    public List&lt;Author&gt; searchAuthors(
+        @QueryParam("pattern") String pattern) {
+        return Search.getSearchSession(em)
+            .search(Author.class)
+            .predicate(f -&gt;
+                pattern == null || pattern.isEmpty() ?
+                    f.matchAll() :
+                    f.simpleQueryString()
+                        .onFields("firstName",
+                            "lastName", "books.title")
+                        .matching(pattern)
+                )
+            .sort(f -&gt; f.byField("lastName_sort")
+            .then().byField("firstName_sort"))
+            .fetchHits();
+    }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><strong>IMPORTANT</strong> If you are importing data without using Hibernate ORM, you need to index data by using <code>Search.getSearchSession(em).createIndexer()</code> <code>.startAndWait()</code> at startup time.</p>
+</div>
+<div class="paragraph">
+<p>You need to configure the extension in <code>application.properties</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="properties" class="language-properties hljs">quarkus.hibernate-search.elasticsearch.version=7
+quarkus.hibernate-search.elasticsearch.
+    analysis-configurer=MyQuarkusAnalysisConfigurer
+quarkus.hibernate-search.elasticsearch.
+    automatic-indexing.synchronization-strategy=searchable
+quarkus.hibernate-search.elasticsearch.
+    index-defaults.lifecycle.strategy=drop-and-create
+quarkus.hibernate-search.elasticsearch.
+    index-defaults.lifecycle.required-status=yellow</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>List of Hibernate-Elasticsearch properties prefixed with <code>quarkus.hibernate-search.elasticsearch</code>:</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Parameter</th>
+<th class="tableblock halign-left valign-top"> Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>backends</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Map of configuration of additional backends.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>version</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Version of Elasticsearch</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>analysis-configurer</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Class or name of the neab used to configure.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>hosts</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">List of Elasticsearch servers hosts.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>username</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Username for auth.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>password</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Password for auth.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>connection-timeout</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Duration of connection timeout.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>max-connections</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Max number of connections to servers.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>max-connections-per-route</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Max number of connections to server.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>indexes</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Per-index specific configuration.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>discovery.enabled</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Enables automatic discovery.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>discovery.refresh-interval</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Refresh interval of node list.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>discovery.default-scheme</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Scheme to be used for the new nodes.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>automatic-indexing.synchronization-strategy</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Status for which you wait before considering the operation completed (<code>queued</code>,<code>committed</code> or <code>searchable</code>).</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>automatic-indexing.enable-dirty-check</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">When enabled, re-indexing of is skipped if the changes are on properties that are not used when indexing.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>index-defaults.lifecycle.strategy</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Index lifecycle (<code>none</code>, <code>validate</code>, <code>update</code>, <code>create</code>, <code>drop-and-create</code>, <code>drop-abd-create-drop</code>)</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>index-defaults.lifecycle.required-status</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Minimal cluster status (<code>green</code>, <code>yellow</code>, <code>red</code>)</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>index-defaults.lifecycle.required-status-wait-timeout</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Waiting time before failing the bootstrap.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>index-defaults.refresh-after-write</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Set if index should be refreshed after writes.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Possible annotations:</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Parameter</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>@Indexed</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Register entity as full text index</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>@FullTextField</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Full text search. Need to set an analyzer to split tokens.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>@KeywordField</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The string is kept as one single token but can be normalized.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>IndexedEmbedded</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Include the Book fields into the Author index.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>@ContainerExtraction</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Sets how to extract a value from container, e.g from a <code>Map</code>.</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>@DocumentId</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Map an unusual entity identifier to a document identifier.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>@GenericField</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Full text index for any supported type.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>@IdentifierBridgeRef</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>Reference to the identifier bridge to use for a <code>@DocumentId</code>.</p>
+</div></div></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>@IndexingDependency</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">How a dependency of the indexing process to a property should affect automatic reindexing.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>@ObjectPath</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p><code>@ScaledNumberField</code></p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>For <code>java.math.BigDecimal</code> or <code>java.math.BigInteger</code> that you need higher precision.</p>
+</div></div></td>
+</tr>
+</tbody>
+</table>
 <div style="page-break-after: always;"></div>
 </div>
 <div class="sect2">
@@ -3386,6 +4824,9 @@ public class ProducerData {
 </div>
 </div>
 <div class="paragraph">
+<p>If you want to dispatch to all subscribers you can annotate the method with <code>@Broadcast</code>.</p>
+</div>
+<div class="paragraph">
 <p>Consumes generated data from <code>my-in-memory</code> stream.</p>
 </div>
 <div class="listingblock">
@@ -3408,8 +4849,73 @@ public class ConsumerData {
 @Stream("my-in-memory") Publisher&lt;Integer&gt; randomRumbers;</code></pre>
 </div>
 </div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Inject @Stream("generated-price")
+Emitter&lt;String&gt; emitter;</code></pre>
+</div>
+</div>
 <div class="paragraph">
-<p>Possible return types:</p>
+<p><strong>Patterns</strong></p>
+</div>
+<div class="paragraph">
+<p><em>REST API &#8594; Message</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Inject @Stream(“in”)
+Emitter&lt;String&gt; emitter;
+
+emitter.send(message);</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>Message &#8594; Message</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Incoming(“in”)
+@Outgoing(“out”)
+public String process(String in) {
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>Message &#8594; SSE</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Inject @Stream(“out”)
+Publisher&lt;String&gt; result;
+
+@GET
+@Produces(SERVER_SENT_EVENTS)
+public Publisher&lt;String&gt; stream() {
+    return result;
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>Message &#8594; Business Logic</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@ApplicationScoped
+public class ReceiverMessages {
+    @Incoming("prices")
+    public void print(String price) {
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Possible implementations are:</p>
+</div>
+<div class="paragraph">
+<p><strong>In-Memory</strong></p>
+</div>
+<div class="paragraph">
+<p>If the stream is not configured then it is assumed to be an in-memory stream, if not then stream type is defined by <code>connector</code> field.</p>
 </div>
 <div class="paragraph">
 <p><strong>Kafka</strong></p>
@@ -3421,46 +4927,212 @@ public class ConsumerData {
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">mvn quarkus:add-extension
     -Dextensions="
-    io.quarkus:quarkus-smallrye-reactive-messaging-kafka,
-    io.quarkus:quarkus-vertx"</code></pre>
+    io.quarkus:quarkus-smallrye-reactive-messaging-kafka"</code></pre>
 </div>
 </div>
 <div class="paragraph">
 <p>Then <code>@Outgoing</code>, <code>@Incoming</code> or <code>@Stream</code> can be used.</p>
 </div>
 <div class="paragraph">
-<p>Kafka configuration schema: <code>smallrye.messaging.[sink|source].{stream-name}.&lt;property&gt;=&lt;value&gt;</code></p>
+<p>Kafka configuration schema: <code>mp.messaging.[outgoing|incoming].{stream-name}.&lt;property&gt;=&lt;value&gt;</code>.</p>
+</div>
+<div class="paragraph">
+<p>The <code>connector</code> type is <code>smallrye-kafka</code>.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="properties" class="language-properties hljs">smallrye.messaging.source.prices.type=
-    io.smallrye.reactive.messaging.kafka.Kafka
-smallrye.messaging.source.prices.topic=
+<pre class="highlightjs highlight"><code data-lang="properties" class="language-properties hljs">mp.messaging.outgoing.generated-price.connector=
+    smallrye-kafka
+mp.messaging.outgoing.generated-price.topic=
     prices
-smallrye.messaging.source.prices.bootstrap.servers=
+mp.messaging.outgoing.generated-price.bootstrap.servers=
     localhost:9092
-smallrye.messaging.source.prices.key.deserializer=
-    org.apache.kafka.common.serialization.StringDeserializer
-smallrye.messaging.source.prices.value.deserializer=
-    org.apache.kafka.common.serialization.IntegerDeserializer
-smallrye.messaging.source.prices.group.id=
-    my-group-id</code></pre>
+mp.messaging.outgoing.generated-price.value.serializer=
+    org.apache.kafka.common.serialization.IntegerSerializer
+
+mp.messaging.incoming.prices.connector=
+    smallrye-kafka
+mp.messaging.incoming.prices.value.deserializer=
+    org.apache.kafka.common.serialization.IntegerDeserializer</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>A complete list of supported properties are in Kafka site. For <a href="https://kafka.apache.org/documentation/#producerconfigs">producer</a> and for <a href="https://kafka.apache.org/documentation/#consumerconfigs">consumer</a></p>
+<p>A complete list of supported properties are in Kafka site. For the <a href="https://kafka.apache.org/documentation/#producerconfigs">producer</a> and for <a href="https://kafka.apache.org/documentation/#consumerconfigs">consumer</a></p>
 </div>
-<div class="admonitionblock important">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-important" title="Important"></i>
-</td>
-<td class="content">
-If the stream is not configured then it is assumed to be an in-memory stream.
-</td>
-</tr>
-</table>
+<div class="paragraph">
+<p><em>JSON-B Serializer/Deserializer</em></p>
+</div>
+<div class="paragraph">
+<p>You can use JSON-B to serialize/deserialize objects.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">./mvnw quarkus:add-extension
+    -Dextensions="quarkus-kafka-client"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To serialize you can use <code>io.quarkus.kafka.client.serialization.JsonbSerializer</code>.</p>
+</div>
+<div class="paragraph">
+<p>To deserialize you need to extend <code>io.quarkus.kafka.client.serialization.JsonbDeserializer</code> and provide a type.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">public class BeerDeserializer
+    extends JsonbDeserializer&lt;Beer&gt; {
+
+    public BeerDeserializer() {
+        super(Beer.class);
+    }
+
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><strong>AMQP</strong></p>
+</div>
+<div class="paragraph">
+<p>To integrate with AMQP you need to add next extensions:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">./mvnw quarkus:add-extension
+    -Dextensions="reactive-messaging-amqp"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Then <code>@Outgoing</code>, <code>@Incoming</code> or <code>@Stream</code> can be used.</p>
+</div>
+<div class="paragraph">
+<p>AMQP configuration schema: <code>mp.messaging.[outgoing|incoming].{stream-name}.&lt;property&gt;=&lt;value&gt;</code>.
+Special properties <code>amqp-username</code> and <code>amqp-password</code> are used to configure AMQP broker credentials.</p>
+</div>
+<div class="paragraph">
+<p>The connector type is <code>smallrye-amqp</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="properties" class="language-properties hljs">amqp-username=quarkus
+amqp-password=quarkus
+# write
+mp.messaging.outgoing.generated-price.connector=
+    smallrye-amqp
+mp.messaging.outgoing.generated-price.address=
+    prices
+mp.messaging.outgoing.generated-price.durable=
+    true
+# read
+mp.messaging.incoming.prices.connector=
+    smallrye-amqp
+mp.messaging.incoming.prices.durable=
+    true</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>A complete list of supported properties for <a href="https://smallrye.io/smallrye-reactive-messaging/#_interacting_using_amqp">AMQP</a>.</p>
+</div>
+<div class="paragraph">
+<p><strong>MQTT</strong></p>
+</div>
+<div class="paragraph">
+<p>To integrate with MQTT you need to add next extensions:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">./mvnw quarkus:add-extension
+    -Dextensions="vertx, smallrye-reactive-streams-operators
+        smallrye-reactive-messaging"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And add <code>io.smallrye.reactive:smallrye-reactive-messaging-mqtt-1.0:0.0.10</code> dependency in your build tool.</p>
+</div>
+<div class="paragraph">
+<p>Then <code>@Outgoing</code>, <code>@Incoming</code> or <code>@Stream</code> can be used.</p>
+</div>
+<div class="paragraph">
+<p>MQTT configuration schema: <code>mp.messaging.[outgoing|incoming].{stream-name}.&lt;property&gt;=&lt;value&gt;</code>.</p>
+</div>
+<div class="paragraph">
+<p>The connector type is <code>smallrye-mqtt</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="properties" class="language-properties hljs">mp.messaging.outgoing.topic-price.type=
+    smallrye-mqtt
+mp.messaging.outgoing.topic-price.topic=
+    prices
+mp.messaging.outgoing.topic-price.host=
+    localhost
+mp.messaging.outgoing.topic-price.port=
+    1883
+mp.messaging.outgoing.topic-price.auto-generated-client-id=
+    true
+
+mp.messaging.incoming.prices.type=
+    smallrye-mqtt
+mp.messaging.incoming.prices.topic=
+    prices
+mp.messaging.incoming.prices.host=
+    localhost
+mp.messaging.incoming.prices.port=
+    1883
+mp.messaging.incoming.prices.auto-generated-client-id=
+    true</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_kafka_streams"><a class="anchor" href="#_kafka_streams"></a><a class="link" href="#_kafka_streams">Kafka Streams</a></h3>
+<div class="paragraph">
+<p>Create streaming queries with the Kafka Streams API.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">./mvnw quarkus:add-extension
+  -Dextensions="kafka-streams"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You need to initialize <code>org.apache.kafka.streams.KafkaStreams</code> on startup:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">private KafkaStreams streams;
+
+void onStart(@Observes StartupEvent ev) {
+    Properties props = new Properties();
+    // ...
+    StreamsBuilder builder = new StreamsBuilder();
+    // ...
+    streams = new KafkaStreams(builder.build(), props);
+
+    executor = Executors.newSingleThreadExecutor();
+    executor.execute(() -&gt; {
+        waitForTopicsToBeCreated(bootstrapServers);
+        streams.start();
+    });
+}
+
+void onStop(@Observes ShutdownEvent ev) {
+    streams.close();
+    executor.shutdown();
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And then you can use it.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">public List getData() {
+    return streams.allMetadataForStore("")
+                .stream()
+                .map()
+                .collect()
+}</code></pre>
+</div>
 </div>
 </div>
 <div class="sect2">
@@ -3471,7 +5143,7 @@ If the stream is not configured then it is assumed to be an in-memory stream.
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">./mvnw quarkus:add-extension
-  -Dextensions="io.quarkus:quarkus-smallrye-health"</code></pre>
+  -Dextensions="io.quarkus:quarkus-reactive-pg-client"</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -3722,6 +5394,37 @@ you can also use <code>src/main/resources/keycloak.json</code> standard Keycloak
 <div style="page-break-after: always;"></div>
 </div>
 <div class="sect2">
+<h3 id="_http_filters"><a class="anchor" href="#_http_filters"></a><a class="link" href="#_http_filters">HTTP Filters</a></h3>
+<div class="paragraph">
+<p>HTTP request and response can be intercepted to manipulate the metadata (ie headers, parameters, media type, &#8230;&#8203;) or abort a request.
+You only need to implement the next <code>ContainerRequestFilter</code> and <code>ContainerResponseFilter</code> JAX-RS interfaces respectively.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Provider
+public class LoggingFilter
+        implements ContainerRequestFilter {
+
+    @Context
+    UriInfo info;
+
+    @Context
+    HttpServletRequest request;
+
+    @Override
+    public void filter(ContainerRequestContext context) {
+        final String method = context.getMethod();
+        final String path = info.getPath();
+        final String address = request.getRemoteAddr();
+        System.out.println("Request %s %s from IP %s",
+                method, path, address);
+    }
+
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
 <h3 id="_cors_filter"><a class="anchor" href="#_cors_filter"></a><a class="link" href="#_cors_filter">CORS Filter</a></h3>
 <div class="paragraph">
 <p>Quarkus comes with a CORS filter that can be enabled via configuration:</p>
@@ -3812,12 +5515,10 @@ you can also use <code>src/main/resources/keycloak.json</code> standard Keycloak
 <pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Path("/api")
 @RegisterRestClient
 public interface WorldClockService {
-
     @GET @Path("/json/cet/now")
     @Produces(MediaType.APPLICATION_JSON)
     @Retry(maxRetries = 2)
     WorldClock getNow();
-
 }</code></pre>
 </div>
 </div>
@@ -3847,12 +5548,10 @@ public String fallbackMethod() {
             implements FallbackHandler&lt;String&gt; {
     @Override
     public String handle(ExecutionContext context) {
-        return "It could be worse";
     }
 }</code></pre>
 </div>
 </div>
-<div style="page-break-after: always;"></div>
 <div class="paragraph">
 <p>And set it in the annotation as value <code>@Fallback(RecoverFallback.class)</code>.</p>
 </div>
@@ -3949,7 +5648,6 @@ WorldClock getNow(){}</code></pre>
 </tr>
 </tbody>
 </table>
-<div style="page-break-after: always;"></div>
 <div class="paragraph">
 <p>You can override annotation parameters via configuration file using property <code>[classname/methodname/]annotation/parameter</code>:</p>
 </div>
@@ -4005,18 +5703,18 @@ MicroProfile Fault Tolerance integrats with MicroProfile Metrics spec. You can d
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="json" class="language-json hljs">{
-    "outcome": "UP",
+    "status": "UP",
     "checks": [
     ]
 }</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>To create a custom health check you need to implement the <code>HealthCheck</code> interface and annotate it with <code>@Health</code> annotation.</p>
+<p>To create a custom health check you need to implement the <code>HealthCheck</code> interface and annotate either with <code>@Readiness</code> (ready to process requests) or <code>@Liveness</code> (is running) annotations.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Health
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Readiness
 public class DatabaseHealthCheck implements HealthCheck {
     @Override
     public HealthCheckResponse call() {
@@ -4043,11 +5741,11 @@ public class DatabaseHealthCheck implements HealthCheck {
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code data-lang="json" class="language-json hljs">{
-    "outcome": "UP",
+    "status": "UP",
     "checks": [
         {
-            "name": "Database connection",
-            "state": "UP",
+            "name": "Database conn",
+            "status": "UP",
             "data": {
                 "connection": true
             }
@@ -4055,6 +5753,36 @@ public class DatabaseHealthCheck implements HealthCheck {
     ]
 }</code></pre>
 </div>
+</div>
+<div class="paragraph">
+<p>Since health checks are CDI beans, you can do:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@ApplicationScoped
+public class DatabaseHealthCheck {
+
+    @Produces
+    @ApplicationScoped
+    @Liveness
+    HealthCheck check1() {
+      return () -&gt; HealthCheckResponse
+                    .named("successful-live").up()
+                    .build();
+    }
+    @Produces
+    @ApplicationScoped
+    @Readiness
+    HealthCheck check2() {
+      return () -&gt; HealthCheckResponse
+                    .named("successful-read").up()
+                    .build();
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You can ping liveness or readiness health checks individually by querying <code>/health/live</code> or <code>/health/ready</code>.</p>
 </div>
 <div class="paragraph">
 <p><strong>Metrics</strong></p>
@@ -4150,6 +5878,7 @@ description = "Hottest Sauce so far.")
 public Long hottestSauce() {}</code></pre>
 </div>
 </div>
+<div style="page-break-after: always;"></div>
 <div class="paragraph">
 <p>Injecting a histogram using <code>@Metric</code>.</p>
 </div>
@@ -4164,7 +5893,7 @@ Histogram historgram;</code></pre>
 <p><strong>Tracing</strong></p>
 </div>
 <div class="paragraph">
-<p>Quarkus can utilize the <a href="https://github.com/eclipse/microprofile-opentracing">MicroProfile OpenTracing</a> spec to provide tracing support.</p>
+<p>Quarkus can utilize the <a href="https://github.com/eclipse/microprofile-opentracing">MicroProfile OpenTracing</a> spec.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -4173,7 +5902,7 @@ Histogram historgram;</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>By default, requests sent to any endpoint are traced without any code changes being required.</p>
+<p>Requests sent to any endpoint are traced automatically.</p>
 </div>
 <div class="paragraph">
 <p>This extension includes OpenTracing support and <code>Jaeger</code> tracer.</p>
@@ -4189,7 +5918,6 @@ quarkus.jaeger.sampler-param=1
 quarkus.jaeger.endpoint=http://localhost:14268/api/traces</code></pre>
 </div>
 </div>
-<div style="page-break-after: always;"></div>
 <div class="paragraph">
 <p><code>@Traced</code> annotation can be set to disable tracing at class or method level.</p>
 </div>
@@ -4280,6 +6008,9 @@ docker run -i --rm -p 8080:8080 quarkus/getting-started</code></pre>
 </tr>
 </tbody>
 </table>
+<div class="paragraph">
+<p>Generated resource is integrated with <a href="#_observability">MicroProfile Health annotations</a>.</p>
+</div>
 </div>
 <div class="sect2">
 <h3 id="_amazon_lambda"><a class="anchor" href="#_amazon_lambda"></a><a class="link" href="#_amazon_lambda">Amazon Lambda</a></h3>
@@ -4517,6 +6248,9 @@ public class ChatSocket {
 <p>Then you only need to access to <code>/openapi</code> to get OpenAPI v3 spec of services.</p>
 </div>
 <div class="paragraph">
+<p>You can update the OpenApi path by setting <code>quarkus.smallrye-openapi.path</code> property.</p>
+</div>
+<div class="paragraph">
 <p>Also, in case of starting Quarkus application in <code>dev</code> or <code>test</code> mode, Swagger UI is accessible at <code>/swagger-ui</code>.
 If you want to use it in production mode you need to set <code>quarkus.swagger-ui.always-include</code> property to <code>true</code>.</p>
 </div>
@@ -4634,8 +6368,10 @@ quarkus.mailer.password=....</code></pre>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
 <p><code>mailer.mock</code></p>
 </div></div></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Emails not sent, just printed.</p></td>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>false in <code>prod</code>, true in <code>dev</code> and <code>test</code>.</p>
+</div></div></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Emails not sent, just printed and stored in a <code>MockMailbox</code> bean.</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
@@ -4769,6 +6505,78 @@ quarkus.mailer.password=....</code></pre>
 </tr>
 </tbody>
 </table>
+<div class="paragraph">
+<p><strong>Testing</strong></p>
+</div>
+<div class="paragraph">
+<p>If <code>quarkus.mailer.mock</code> is set to <code>true</code>, which is the default value in <code>dev</code> and <code>test</code> mode, you can inject <code>MockMailbox</code> to get the sent messages.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@Inject
+MockMailbox mailbox;
+
+@BeforeEach
+void init() {
+    mailbox.clear();
+}
+
+List&lt;Mail&gt; sent = mailbox
+                    .getMessagesSentTo("to@acme.org");</code></pre>
+</div>
+</div>
+<div style="page-break-after: always;"></div>
+</div>
+<div class="sect2">
+<h3 id="_scheduled_tasks"><a class="anchor" href="#_scheduled_tasks"></a><a class="link" href="#_scheduled_tasks">Scheduled Tasks</a></h3>
+<div class="paragraph">
+<p>You can schedule periodic tasks with Quarkus.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="java" class="language-java hljs">@ApplicationScoped
+public class CounterBean {
+
+    @Scheduled(every="10s")
+    void increment() {}
+
+    @Scheduled(cron="0 15 10 * * ?")
+    void morningTask() {}
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>every</code> and <code>cron</code> parameters can be surrounded with <code>{}</code> and the value is used as config property to get the value.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>@Scheduled(cron = "{morning.check.cron.expr}")
+void morningTask() {}</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And configure the property into <code>application.properties</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="properties" class="language-properties hljs">morning.check.cron.expr=0 15 10 * * ?</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_kogito"><a class="anchor" href="#_kogito"></a><a class="link" href="#_kogito">Kogito</a></h3>
+<div class="paragraph">
+<p>Quarkus integrates with <a href="http://www.kiegroup.org/">Kogito</a>, a next-generation business automation toolkit from Drools and jBPM projects for adding business automation capabilities.</p>
+</div>
+<div class="paragraph">
+<p>To start using it you only need to add the next extension:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">./mvnw quarkus:add-extension
+  -Dextensions="kogito"</code></pre>
+</div>
+</div>
 </div>
 <div class="sect2">
 <h3 id="_resources"><a class="anchor" href="#_resources"></a><a class="link" href="#_resources">Resources</a></h3>

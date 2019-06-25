@@ -1,3 +1,33 @@
+== HTTP Filters
+// tag::update_3_3[]
+HTTP request and response can be intercepted to manipulate the metadata (ie headers, parameters, media type, ...) or abort a request.
+You only need to implement the next `ContainerRequestFilter` and `ContainerResponseFilter` JAX-RS interfaces respectively.
+
+[source, java]
+----
+@Provider
+public class LoggingFilter 
+        implements ContainerRequestFilter {
+
+    @Context
+    UriInfo info;
+
+    @Context
+    HttpServletRequest request;
+
+    @Override
+    public void filter(ContainerRequestContext context) {
+        final String method = context.getMethod();
+        final String path = info.getPath();
+        final String address = request.getRemoteAddr();
+        System.out.println("Request %s %s from IP %s", 
+                method, path, address);
+    }
+
+}
+----
+// end::update_3_3[]
+
 == CORS Filter
 // tag::update_2_11[]
 Quarkus comes with a CORS filter that can be enabled via configuration:
@@ -53,12 +83,10 @@ To do automatic *retries* on a method:
 @Path("/api")
 @RegisterRestClient
 public interface WorldClockService {
-    
     @GET @Path("/json/cet/now")
     @Produces(MediaType.APPLICATION_JSON)
     @Retry(maxRetries = 2)
     WorldClock getNow();
-
 }
 ----
 
@@ -85,12 +113,9 @@ public class RecoverFallback
             implements FallbackHandler<String> {
     @Override
     public String handle(ExecutionContext context) {
-        return "It could be worse";
     }
 }
 ----
-
-<<<
 
 And set it in the annotation as value `@Fallback(RecoverFallback.class)`.
 
@@ -145,8 +170,6 @@ a|`@Asynchronous`
 a|
 |===
 
-<<<
-
 You can override annotation parameters via configuration file using property `[classname/methodname/]annotation/parameter`:
 
 [source, properties]
@@ -174,6 +197,7 @@ TIP: MicroProfile Fault Tolerance integrats with MicroProfile Metrics spec. You 
 
 *Health Checks*
 
+// tag::update_3_4[]
 Quarkus relies on https://github.com/eclipse/microprofile-health[MicroProfile Health] spec to provide health checks.
 
 [source, bash]
@@ -187,17 +211,17 @@ By just adding this extension, an endpoint is registered to `/health` providing 
 [source, json]
 ----
 {
-    "outcome": "UP",
+    "status": "UP",
     "checks": [
     ]
 }
 ----
 
-To create a custom health check you need to implement the `HealthCheck` interface and annotate it with `@Health` annotation.
+To create a custom health check you need to implement the `HealthCheck` interface and annotate either with `@Readiness` (ready to process requests) or `@Liveness` (is running) annotations.
 
 [source, java]
 ----
-@Health
+@Readiness
 public class DatabaseHealthCheck implements HealthCheck {
     @Override
     public HealthCheckResponse call() {
@@ -222,13 +246,12 @@ Builds the next output:
 
 [source, json]
 ----
-
 {
-    "outcome": "UP",
+    "status": "UP",
     "checks": [
         {
-            "name": "Database connection",
-            "state": "UP",
+            "name": "Database conn",
+            "status": "UP",
             "data": {
                 "connection": true
             }
@@ -236,6 +259,35 @@ Builds the next output:
     ]
 }
 ----
+
+Since health checks are CDI beans, you can do:
+
+[source, java]
+----
+@ApplicationScoped
+public class DatabaseHealthCheck {
+    
+    @Produces
+    @ApplicationScoped
+    @Liveness
+    HealthCheck check1() {
+      return () -> HealthCheckResponse
+                    .named("successful-live").up()
+                    .build();
+    }
+    @Produces
+    @ApplicationScoped
+    @Readiness
+    HealthCheck check2() {
+      return () -> HealthCheckResponse
+                    .named("successful-read").up()
+                    .build();
+    }
+}
+----
+
+You can ping liveness or readiness health checks individually by querying `/health/live` or `/health/ready`.
+// end::update_3_4[]
 
 *Metrics*
 
@@ -291,6 +343,8 @@ description = "Hottest Sauce so far.")
 public Long hottestSauce() {}
 ----
 
+<<<
+
 Injecting a histogram using `@Metric`.
 
 [source, java]
@@ -302,7 +356,7 @@ Histogram historgram;
 
 *Tracing*
 
-Quarkus can utilize the https://github.com/eclipse/microprofile-opentracing[MicroProfile OpenTracing] spec to provide tracing support.
+Quarkus can utilize the https://github.com/eclipse/microprofile-opentracing[MicroProfile OpenTracing] spec.
 
 [source, bash]
 ----
@@ -310,7 +364,7 @@ Quarkus can utilize the https://github.com/eclipse/microprofile-opentracing[Micr
   -Dextensions="io.quarkus:quarkus-smallrye-opentracing"
 ----
 
-By default, requests sent to any endpoint are traced without any code changes being required.
+Requests sent to any endpoint are traced automatically.
 
 This extension includes OpenTracing support and `Jaeger` tracer.
 
@@ -323,8 +377,6 @@ quarkus.jaeger.sampler-type=const
 quarkus.jaeger.sampler-param=1
 quarkus.jaeger.endpoint=http://localhost:14268/api/traces
 ----
-
-<<<
 
 `@Traced` annotation can be set to disable tracing at class or method level.
 

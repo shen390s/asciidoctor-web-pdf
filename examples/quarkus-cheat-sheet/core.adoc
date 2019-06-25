@@ -82,8 +82,8 @@ Optional<String> optionalMessage;
 
 Properties can be set as:
 
-* Environment variables.
-* System properties.
+* Environment variables (`GREETINGS_MESSAGE`).
+* System properties (`-Dgreetings.message`).
 * Resources `src/main/resources/application.properties`.
 * External config directory under the current working directory: `config/application.properties`.
 
@@ -486,7 +486,7 @@ public class WorldClockOptions {
 
 And configure the hostname at `application.properties`:
 
-[source, proeprties]
+[source, properties]
 ----
 org.acme.quickstart.WorldClockService/mp-rest/url=
         http://worldclockapi.com
@@ -590,6 +590,8 @@ You can also inject the URL where Quarkus is started:
 URL url;
 ----
 
+*Mocking* 
+
 If you need to provide an alternative implementation of a service (for testing purposes) you can do it by using CDI `@Alternative` annotation using it in the test service placed at `src/test/java`:
 
 [source, java]
@@ -601,5 +603,11 @@ public class MockExternalService extends ExternalService {}
 ----
 
 IMPORTANT: This does not work when using native image testing.
+
+// tag::update_3_6[]
+A stereotype annotation `io.quarkus.test.Mock` is provided  declaring `@Alternative`, `@Priority(1)` and `@Dependent`.
+// end::update_3_6[]
+
+*Native Testing*
 
 To test native executables you can annotate the test with `@SubstrateTest`.
