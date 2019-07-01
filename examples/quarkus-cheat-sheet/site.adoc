@@ -15,6 +15,44 @@ In this page you can either read what has been added in each version of the chea
 [[whatsnew]]
 == What's New in Cheat-Sheet
 
+=== Version 0.18.0
+
+.JAX-RS
+[%collapsible]
+====
+include::network.adoc[tag=update_4_1]
+====
+
+.Quarkus Test Resource
+[%collapsible]
+====
+include::core.adoc[tag=update_4_2]
+====
+
+.H2 Quarkus Test Resource
+[%collapsible]
+====
+include::persistence.adoc[tag=update_4_3]
+====
+
+.Flushing
+[%collapsible]
+====
+include::persistence.adoc[tag=update_4_4]
+====
+
+.Fabric8 Kubernetes Client
+[%collapsible]
+====
+include::cloud.adoc[tag=update_4_5]
+====
+
+.DataSource Properties
+[%collapsible]
+====
+include::persistence.adoc[tag=update_4_6]
+====
+
 === Version 0.17.0
 
 .Hibernate Search

@@ -440,8 +440,6 @@ a|`INFO`
 a|Default minimum level.
 |===
 
-<<<
-
 == Rest Client
 
 Quarkus implements https://github.com/eclipse/microprofile-rest-client[MicroProfile Rest Client] spec:
@@ -451,6 +449,8 @@ Quarkus implements https://github.com/eclipse/microprofile-rest-client[MicroProf
 ./mvnw quarkus:add-extension 
   -Dextensions="io.quarkus:quarkus-smallrye-rest-client"
 ----
+
+<<<
 
 To get content from http://worldclockapi.com/api/json/cet/now you need to create a service interface:
 
@@ -562,8 +562,6 @@ CompletionStage<WorldClock> getNow();
 
 Quarkus archetype adds test dependencies with JUnit 5 and Rest-Assured library to test REST endpoints.
 
-To package and run the application for testing:
-
 [source, java]
 ----
 @QuarkusTest
@@ -580,7 +578,7 @@ public class GreetingResourceTest {
 }
 ----
     
-Test port can be modified by using `quarkus.http.test-port` configuration property.
+Test port can be set in `quarkus.http.test-port` property.
 
 You can also inject the URL where Quarkus is started:
 
@@ -590,6 +588,43 @@ You can also inject the URL where Quarkus is started:
 URL url;
 ----
 
+*Quarkus Test Resource*
+
+// tag::update_4_2[]
+You can execute some logic before the first test run (`start`) and execute some logic at the end of the test suite (`stop`).
+
+You need to create a class implementing `QuarkusTestResourceLifecycleManager` interface and register it in the test via `@QuarkusTestResource` annotation.
+
+[source, java]
+----
+public class MyCustomTestResource 
+    implements QuarkusTestResourceLifecycleManager {
+
+    @Override
+    public Map<String, String> start() {
+        // return system properties that 
+        // should be set for the running test
+        return Collections.emptyMap();
+    }
+
+    @Override
+    public synchronized void stop() {
+    }
+}
+----
+
+IMPORTANT: Returning new system properties implies running parallel tests in different JVMs.
+
+And the usage:
+
+[source, java]
+----
+@QuarkusTestResource(MyCustomTestResource.class)
+public class MyTest {
+}
+----
+
+// end::update_4_2[]
 *Mocking* 
 
 If you need to provide an alternative implementation of a service (for testing purposes) you can do it by using CDI `@Alternative` annotation using it in the test service placed at `src/test/java`:
@@ -605,9 +640,11 @@ public class MockExternalService extends ExternalService {}
 IMPORTANT: This does not work when using native image testing.
 
 // tag::update_3_6[]
-A stereotype annotation `io.quarkus.test.Mock` is provided  declaring `@Alternative`, `@Priority(1)` and `@Dependent`.
+A stereotype annotation `io.quarkus.test.Mock` is provided declaring `@Alternative`, `@Priority(1)` and `@Dependent`.
 // end::update_3_6[]
+
+<<<
 
 *Native Testing*
 
-To test native executables you can annotate the test with `@SubstrateTest`.
+To test native executables annotate the test with `@SubstrateTest`.
