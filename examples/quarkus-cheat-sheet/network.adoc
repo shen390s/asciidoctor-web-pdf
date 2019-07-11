@@ -1,6 +1,6 @@
 == JAX-RS
 // tag::update_4_1[]
-Quarkus uses JAX-RS to define https://github.com/jax-rs[REST-ful web APIs].
+Quarkus uses JAX-RS to define https://github.com/jax-rs[REST-ful web APIs, window="_blank"].
 
 [source, java]
 ----
@@ -123,6 +123,36 @@ public class LoggingFilter
 ----
 // end::update_3_3[]
 
+*Exception Mapper*
+// tag::update_5_1[]
+You can map exceptions to produce a custom output by implementing `ExceptionMapper` interface:
+
+[source, java]
+----
+@Provider
+public class ErrorMapper 
+    implements ExceptionMapper<Exception> {
+
+    @Override
+    public Response toResponse(Exception exception) {
+        int code = 500;
+        if (exception instanceof WebApplicationException) {
+            code = ((WebApplicationException) exception)
+                .getResponse().getStatus();
+        }
+        return Response.status(code)
+            .entity(
+                Json.createObjectBuilder()
+                .add("error", exception.getMessage())
+                .add("code", code)
+                .build()
+            )
+            .build();
+        }
+    }
+----
+// end::update_5_1[]
+
 == CORS Filter
 // tag::update_2_11[]
 Quarkus comes with a CORS filter that can be enabled via configuration:
@@ -141,19 +171,19 @@ a|`cors`
 a|`false`
 |Enable CORS.
 
-a|origins
+a|`cors.origins`
 a|Any request valid.
 |CSV of origins allowed.
 
-a|`methods`
+a|`cors.methods`
 |Any method valid.
 |CSV of methods valid.
 
-a|`headers`
+a|`cors.headers`
 |Any requested header valid.
 |CSV of valid allowed headers.
 
-a|`exposed-headers`
+a|`cors.exposed-headers`
 |
 |CSV of valid exposed headers.
 |===
@@ -161,7 +191,7 @@ a|`exposed-headers`
 
 == Fault Tolerance
 // tag::update_1_2[]
-Quarkus uses https://github.com/eclipse/microprofile-fault-tolerance[MicroProfile Fault Tolerance] spec:
+Quarkus uses https://github.com/eclipse/microprofile-fault-tolerance[MicroProfile Fault Tolerance, window="_blank"] spec:
 
 [source, bash]
 ----
@@ -226,8 +256,6 @@ WorldClock getNow(){}
 
 If 3 `(4 x 0.75)` failures occur among the rolling window of 4 consecutive invocations then the circuit is opened for 1000 ms and then be back to half open.
 If the invocation succeeds then the circuit is back to closed again.
-
-<<<
 
 You can use *bulkahead* pattern to limit the number of concurrent access to the same resource. 
 If the operation is synchronous it uses a semaphore approach, if it is asynchronous a thread-pool one.
@@ -295,7 +323,7 @@ TIP: MicroProfile Fault Tolerance integrats with MicroProfile Metrics spec. You 
 *Health Checks*
 
 // tag::update_3_4[]
-Quarkus relies on https://github.com/eclipse/microprofile-health[MicroProfile Health] spec to provide health checks.
+Quarkus relies on https://github.com/eclipse/microprofile-health[MicroProfile Health, window="_blank"] spec to provide health checks.
 
 [source, bash]
 ----
@@ -388,7 +416,7 @@ You can ping liveness or readiness health checks individually by querying `/heal
 
 *Metrics*
 
-Quarkus can utilize the https://github.com/eclipse/microprofile-metrics[MicroProfile Metrics spec] to provide metrics support.
+Quarkus can utilize the https://github.com/eclipse/microprofile-metrics[MicroProfile Metrics spec, window="_blank"] to provide metrics support.
 
 [source, bash]
 ----
@@ -451,7 +479,7 @@ Histogram historgram;
 
 *Tracing*
 
-Quarkus can utilize the https://github.com/eclipse/microprofile-opentracing[MicroProfile OpenTracing] spec.
+Quarkus can utilize the https://github.com/eclipse/microprofile-opentracing[MicroProfile OpenTracing, window="_blank"] spec.
 
 [source, bash]
 ----

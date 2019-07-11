@@ -20,7 +20,7 @@ To configure native application, you can create a `config` directory at the same
 
 *Kubernetes*
 
-Quarks can use https://github.com/ap4k/ap4k[ap4k] to generate Kubernetes resources.
+Quarks can use https://github.com/dekorateio/dekorate[Dekorate] to generate Kubernetes resources.
 
 [source, bash]
 ----
@@ -46,7 +46,7 @@ Generated resource is integrated with <<Observability, MicroProfile Health annot
 
 == Kubernetes Client
 // tag::update_4_5[]
-Quarkus integrates with https://github.com/fabric8io/kubernetes-client[Fabric8 Kubernetes Client].
+Quarkus integrates with https://github.com/fabric8io/kubernetes-client[Fabric8 Kubernetes Client, window="_blank"].
 
 [source, terminal]
 ----
@@ -97,6 +97,41 @@ client.customResourceDefinitions()
 ----
 // end::update_4_5[]
 
+*Testing*
+// tag::update_5_9[]
+Quarkus provides a Kubernetes Mock test resource that starts a mock of Kubernetes API server and sets the proper environment variables needed by Kubernetes Client.
+
+Register next dependency: `io.quarkus:quarkus-test-kubernetes-client:test`.
+
+[source, java]
+----
+@QuarkusTestResource(KubernetesMockServerTestResource.class)
+@QuarkusTest
+public class KubernetesClientTest {
+    
+    @MockServer
+    private KubernetesMockServer mockServer;
+
+    @Test
+    public void test() {
+        final Pod pod1 = ...
+        mockServer
+            .expect()
+            .get()
+            .withPath("/api/v1/namespaces/test/pods")
+            .andReturn(200,
+                new PodListBuilder()
+                .withNewMetadata()
+                .withResourceVersion("1")
+                .endMetadata()
+                .withItems(pod1, pod2)
+                .build())
+            .always();
+    }
+}
+----
+// end::update_5_9[]
+
 == Amazon Lambda
 // tag::update_1_10[]
 Quarkus integrates with Amazon Lambda.
@@ -119,8 +154,6 @@ public class TestLambda
     }
 }
 ----
-
-<<<
 
 *Test*
 

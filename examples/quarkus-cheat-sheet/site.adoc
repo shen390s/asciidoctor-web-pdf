@@ -15,6 +15,68 @@ In this page you can either read what has been added in each version of the chea
 [[whatsnew]]
 == What's New in Cheat-Sheet
 
+=== Version 0.19.0
+
+.Exception Mapper
+[%collapsible]
+====
+include::network.adoc[tag=update_5_1]
+====
+
+.EntityManager Injection
+[%collapsible]
+====
+include::persistence.adoc[tag=update_5_2]
+====
+
+.Hibernate Configuration
+[%collapsible]
+====
+include::persistence.adoc[tag=update_5_3]
+====
+
+.CDI Produces and Qualifiers
+[%collapsible]
+====
+include::core.adoc[tag=update_5_4]
+====
+
+.Tests and Interceptors
+[%collapsible]
+====
+include::core.adoc[tag=update_5_5]
+====
+
+.Amazon DynamoDB
+[%collapsible]
+====
+include::persistence.adoc[tag=update_5_6]
+====
+
+.Neo4j
+[%collapsible]
+====
+include::persistence.adoc[tag=update_5_7]
+====
+
+.Apache Tika
+[%collapsible]
+====
+include::misc.adoc[tag=update_5_8]
+====
+
+.Kubernetes Mock Server
+[%collapsible]
+====
+include::cloud.adoc[tag=update_5_9]
+====
+
+.MongoDB Client
+[%collapsible]
+====
+include::persistence.adoc[tag=update_5_10]
+====
+
 === Version 0.18.0
 
 .JAX-RS
