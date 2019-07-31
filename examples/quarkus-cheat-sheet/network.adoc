@@ -89,7 +89,7 @@ public String getBase(@Context UriInfo uriInfo) {
 }
 ----
 
-Possible injectable objects: `SecurityContext`, `Request`, `Application`, `Configuration`, `Providers`, `ResourceContext`, `ServletConfig`, `ServletContext`, `HttpServletRequest`, `HttpServletResponse`, `HttpHeaders`, `URiInfo`, `SseEventSink` and `Sse`.
+Possible injectable objects: `SecurityContext`, `Request`, `Application`, `Configuration`, `Providers`, `ResourceContext`, `ServletConfig`, `ServletContext`, `HttpServletRequest`, `HttpServletResponse`, `HttpHeaders`, `Urinfo`, `SseEventSink` and `Sse`.
 // end::update_4_1[]
 
 *HTTP Filters*
@@ -396,18 +396,19 @@ public class DatabaseHealthCheck {
     @ApplicationScoped
     @Liveness
     HealthCheck check1() {
-      return () -> HealthCheckResponse
-                    .named("successful-live").up()
-                    .build();
+      return io.smallrye.health.HealthStatus
+                                .up("successful-live");
     }
+
     @Produces
     @ApplicationScoped
     @Readiness
     HealthCheck check2() {
-      return () -> HealthCheckResponse
-                    .named("successful-read").up()
-                    .build();
+      return HealthStatus
+                .state("successful-read", this::isReady)
     }
+
+    private boolean isReady() {}
 }
 ----
 
@@ -433,19 +434,22 @@ MicroProfile Metrics annotations:
 | Annotation | Description
 
 a|`@Timed`
-a|Method, constructor, or class as timed.
+a|Tracks the duration.
 
 a|`@Metered`
-a|Method, constructor, or class as metered.
+a|Tracks the frequency of invocations.
 
 a|`@Counted`
-a|Method, constructor, or class as counted.
+a|Counts number of invocations.
 
 a|`@Gauge`
-a|Method or field as a gauge.
+a|Samples the value of the annotated object.
+
+a|`@ConcurrentGauge`
+a|Gauge to count parallel invocations.
 
 a|`@Metric`
-a|Requesting that a metric be injected or registered.
+a|Used to inject a metric. Valid types `Meter`, `Timer`, `Counter`, `Histogram`. `Gauge` only on producer methods/fields.
 |===
 
 [source, java]
@@ -456,6 +460,10 @@ a|Requesting that a metric be injected or registered.
 description = "A measure of how long it takes 
                                 to perform a hello.", 
 unit = MetricUnits.MILLISECONDS)
+public String hello() {}
+
+@Counted(name = "countWelcome", 
+description = "How many welcome have been performed.")
 public String hello() {}
 ----
 

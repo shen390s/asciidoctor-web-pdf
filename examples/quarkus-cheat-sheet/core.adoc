@@ -125,8 +125,35 @@ quarkus.http.port=9090
 %staging.quarkus.http.port=9999
 ----
 
-And enable it `quarkus-profile=staging`.
+And enable it `quarkus.profile=staging`.
 // end::update_2_9[]
+
+// tag::update_6_7[]
+You can also set it in the build tool:
+
+[source, xml]
+----
+<groupId>org.apache.maven.plugins</groupId>
+<artifactId>maven-surefire-plugin</artifactId>
+<version>${surefire-plugin.version}</version>
+<configuration>
+    <systemPropertyVariables>
+        <quarkus.test.profile>foo</quarkus.test.profile>
+        <buildDirectory>${project.build.directory}</buildDirectory>
+    </systemPropertyVariables>
+</configuration>
+----
+
+TIP: Same for `maven-failsafe-plugin`.
+
+[source, groovy]
+----
+test {
+    useJUnitPlatform()
+    systemProperty "quarkus.test.profile", "foo"
+}
+----
+// end::update_6_7[]
 
 // tag::update_2_6[]
 *Custom Loader*
@@ -211,6 +238,12 @@ Create a file `/META-INF/services/org.eclipse.microprofile.config.spi.Converter`
 com.acme.config.CustomInstantConverter
 ----
 // end::update_2_8[]
+
+== Custom Context Path
+// tag::update_6_2[]
+By default Undertow will serve content from under the root context. 
+If you want to change this you can use the `quarkus.servlet.context-path` config key to set the context path.
+// end::update_6_2[]
 
 == Injection
 
@@ -334,6 +367,32 @@ public Response create(Sauce sauce) {
 }
 ----
 
+// tag::update_6_1[]
+To work with `Jackson` you need to add:
+
+[source, bash]
+----
+./mvnw quarkus:add-extension 
+  -Dextensions="quarkus-resteasy-jackson"
+----
+
+If you don't want to use the default `ObjectMapper` you can customize it by:
+
+[source, java]
+----
+@ApplicationScoped
+public class CustomObjectMapperConfig {
+    @Singleton
+    @Produces
+    public ObjectMapper objectMapper() {
+        ObjectMapper objectMapper = new ObjectMapper();
+        // perform configuration
+        return objectMapper;
+    }
+}
+----
+// end::update_6_1[]
+
 == Validator
 
 Quarkus uses https://hibernate.org/validator/[Hibernate Validator, window="_blank"] to validate input/output of REST services and business services using Bean validation spec.
@@ -359,7 +418,7 @@ public class Sauce {
 }
 ----
 
-To validate that an object is valid you need to annotate where is used with `@Valid` annotation:
+To validate an object use `@Valid` annotation:
 
 [source, java]
 ----
@@ -482,6 +541,94 @@ a|`file.path`
 a|`quarkus.log`
 a|The path to log file.
 
+a|`file.rotation.max-file-size`
+a|
+a|The maximum file size of the log file.
+
+a|`file.rotation.max-backup-index`
+a|`1`
+|The maximum number of backups to keep.
+
+a|`file.rotation.file-suffix`
+a|
+|Rotating log file suffix.
+
+a|`file.rotation.rotate-on-boot`
+a|`true`
+|Indicates rotate logs at bootup.
+
+a|`file.async`
+a|`false`
+|Log asynchronously.
+
+a|`file.async.queue-length`
+a|`512`
+|The queue length to use before flushing writing.
+
+a|`file.async.overflow`
+a|`BLOCK`
+|Action when queue is full.
+
+a|`syslog.enable`
+a|`false`
+|syslog logging is enabled.
+
+a|`syslog.format`
+a|`%d{yyyy-MM-dd HH:mm:ss,SSS} %h %N[%i] %-5p [%c{3.}] (%t) %s%e%n`
+|The format pattern to use for logging to syslog.
+
+a|`syslog.level`
+a|`ALL`
+|The minimum log level to write to syslog.
+
+a|`syslog.endpoint`
+a|`localhost:514`
+|The IP address and port of the syslog server.
+
+a|`syslog.app-name`
+a|Current process name.
+|The app name used when formatting the message in RFC5424 format.
+
+a|`syslog.hostname`
+a|Current hostname.
+|The name of the host the messages are being sent from.
+
+a|`syslog.facility`
+a|`USER_LEVEL`
+|Priority of the message as defined by RFC-5424 and RFC-3164.
+
+a|`syslog.syslog-type`
+a|`RFC5424`
+|The syslog type of format message.
+
+a|`syslog.protocol`
+a|`TCP`
+|Protocol used.
+
+a|`syslog.use-counting-framing`
+a|`false`
+|Message prefixed with the size of the message.
+
+a|`syslog.truncate`
+a|`true`
+|Message should be truncated.
+
+a|`syslog.block-on-reconnect`
+a|`true`
+|Block when attempting to reconnect.
+
+a|`syslog.async`
+a|`false`
+|Log asynchronously.
+
+a|`syslog.async.queue-length`
+a|`512`
+|The queue length to use before flushing writing.
+
+a|`syslog.async.overflow`
+a|`BLOCK`
+|Action when queue is full.
+
 a|`category."<category-name>".level`
 a|`INFO`
 a|Minimum level category.
@@ -498,7 +645,7 @@ Quarkus implements https://github.com/eclipse/microprofile-rest-client[MicroProf
 [source, bash]
 ----
 ./mvnw quarkus:add-extension 
-  -Dextensions="io.quarkus:quarkus-smallrye-rest-client"
+  -Dextensions="io.quarkus:quarkus-rest-client"
 ----
 
 <<<
@@ -666,6 +813,12 @@ public class MyCustomTestResource
     @Override
     public void inject(Object testInstance) {
     }
+
+    // optional
+    @Override
+    public int order() {
+        return 0;
+    }
 }
 ----
 
@@ -685,6 +838,8 @@ public class MyTest {
 
 If you need to provide an alternative implementation of a service (for testing purposes) you can do it by using CDI `@Alternative` annotation using it in the test service placed at `src/test/java`:
 
+<<<
+
 [source, java]
 ----
 @Alternative
@@ -695,14 +850,13 @@ public class MockExternalService extends ExternalService {}
 
 IMPORTANT: This does not work when using native image testing.
 
-<<<
-
 // tag::update_3_6[]
 A stereotype annotation `io.quarkus.test.Mock` is provided declaring `@Alternative`, `@Priority(1)` and `@Dependent`.
 // end::update_3_6[]
 
 *Interceptors*
 // tag::update_5_5[]
+
 Tests are actually full CDI beans, so you can apply CDI interceptors:
 
 [source, java]
@@ -719,6 +873,12 @@ public @interface TransactionalQuarkusTest {
 public class TestStereotypeTestCase {}
 ----
 // end::update_5_5[]
+
+*Test Coverage*
+// tag::update_6_3[]
+Due the nature of Quarkus to calculate correctly the coverage information with JaCoCo, you might need offline instrumentation.
+I recommend reading https://quarkus.io/guides/tests-with-coverage-guide[this document, window="_blank"] to understand how JaCoCo and Quarkus works and how you can configure JaCoCo to get correct data.
+// end::update_6_3[]
 
 *Native Testing*
 
