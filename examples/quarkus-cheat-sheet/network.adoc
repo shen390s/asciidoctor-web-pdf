@@ -124,6 +124,7 @@ public class LoggingFilter
 // end::update_3_3[]
 
 *Exception Mapper*
+
 // tag::update_5_1[]
 You can map exceptions to produce a custom output by implementing `ExceptionMapper` interface:
 
@@ -153,8 +154,27 @@ public class ErrorMapper
 ----
 // end::update_5_1[]
 
+== GZip Support
+// tag::update_7_4[]
+
+You can configure Quarkus to use GZip in the `application.properties` file using the next properties with `quarkus.resteasy` suffix:
+
+|===	
+|Parameter | Default | Description
+
+a|`gzip.enabled`
+a|`false`
+a|EnableGZip.
+
+a|`gzip.max-input`
+a|`10M`
+a|Configure the upper limit on deflated request body.
+|===
+// end::update_7_4[]
+
 == CORS Filter
 // tag::update_2_11[]
+
 Quarkus comes with a CORS filter that can be enabled via configuration:
 
 [source, properties]
@@ -223,8 +243,8 @@ You can set fallback code in case of an error by using `@Fallback` annotation:
 @Fallback(fallbackMethod = "fallbackMethod")
 WorldClock getNow(){}
 
-public String fallbackMethod() {
-    return "It could beworse";
+public WorldClock fallbackMethod() {
+    return new WorldClock();
 }
 ----
 
@@ -235,9 +255,9 @@ You can also set logic into a class that implements `FallbackHandler` interface:
 [source, java]
 ----
 public class RecoverFallback 
-            implements FallbackHandler<String> {
+            implements FallbackHandler<WorldClock> {
     @Override
-    public String handle(ExecutionContext context) {
+    public WorldClock handle(ExecutionContext context) {
     }
 }
 ----
@@ -315,7 +335,7 @@ org.acme.quickstart.WorldClock/getNow/Retry/enabled=false
 MP_Fault_Tolerance_NonFallback_Enabled=false
 ----
 
-TIP: MicroProfile Fault Tolerance integrats with MicroProfile Metrics spec. You can disable it by setting `MP_Fault_Tolerance_Metrics_Enabled` to false.
+TIP: MicroProfile Fault Tolerance integrates with MicroProfile Metrics spec. You can disable it by setting `MP_Fault_Tolerance_Metrics_Enabled` to false.
 // end::update_1_2[]
 
 == Observability
