@@ -703,7 +703,6 @@ Injecting the client:
 
 [source, java]
 ----
-@Inject
 @RestClient
 WorldClockService worldClockService;
 ----
@@ -846,8 +845,6 @@ public class MyTest {
 *Mocking* 
 
 If you need to provide an alternative implementation of a service (for testing purposes) you can do it by using CDI `@Alternative` annotation using it in the test service placed at `src/test/java`:
-
-<<<
 
 [source, java]
 ----

@@ -4,7 +4,7 @@ Quarkus works with JPA(Hibernate) as persistence solution.
 But also provides an https://en.wikipedia.org/wiki/Active_record_pattern[Active Record pattern, window="_blank"] implementation under Panache project.
 
 To use database access you need to add Quarkus JDBC drivers instead of the original ones.
-At this time `H2`, `MariaDB`, `MSSQL` and `PostgreSQL` drivers are supported.
+At this time `H2`, `MariaDB`, `MySQL`, `MSSQL` and `PostgreSQL` drivers are supported.
 
 [source, bash]
 ----
@@ -77,7 +77,8 @@ a|`idle-removal-interval`
 a|`java.time.Duration`
 
 a|`transaction-isolation-level`
-a|`io.quarkus.agroal.runtime.TransactionIsolationLevel`
+a|`io.quarkus.agroal.runtime`
+`.TransactionIsolationLevel`
 
 a|`enable-metrics`
 a|`Boolean`
@@ -116,7 +117,7 @@ a|`query.query-plan-cache-max-size`
 a|
 
 a|`query.default-null-ordering`
-a|Default precedence of null values in `ORDER BY`. `none`, `first`, `last`.
+a|Default precedence of null values in `ORDER BY`.
 a|[`none`], `first`, `last`.
 
 a|`database.generation`
@@ -196,8 +197,6 @@ If queries start with the keyword `from` then they are treated as _HQL_ query, i
 * `order by` which expands to `from EntityName order by ...`
 * `<columnName>` which expands to `from EntityName where <columnName>=?`
 * `<query>` which is expanded to `from EntityName where <query>`
-
-<<<
 
 *Static Methods*
 
@@ -333,7 +332,7 @@ IMPORTANT: This flush is less efficient and you still need to commit transaction
 
 There is a Quarkus Test Resource that starts and stops H2 server before and after test suite.
 
-Register next dependency `io.quarkus:quarkus-test-h2:test`.
+Register dependency `io.quarkus:quarkus-test-h2:test`.
 
 And annotate the test:
 
@@ -346,6 +345,7 @@ public class FlywayTestResources {
 // end::update_4_3[]
 
 *Transactions*
+
 // tag::update_6_4[]
 The easiest way to define your transaction boundaries is to use the `@Transactional` annotation.
 
@@ -373,8 +373,6 @@ You can control the transaction scope:
 
 You can configure the default transaction timeout using `quarkus.transaction-manager.default-transaction-timeout` configuration property. By default it is set to 60 seconds.
 
-<<<
-
 You can set a timeout property, in seconds, that applies to transactions created within the annotated method by using `@TransactionConfiguration` annotation.
 
 [source, java]
@@ -395,6 +393,136 @@ transaction.commit();
 transaction.rollback();
 ----
 // end::update_6_4[]
+
+== Infinispan
+// tag::update_8_7[]
+Quarkus integrates with https://infinispan.org/[Infinispan, window="_blank"]:
+
+[source, bash]
+----
+./mvnw quarkus:add-extension 
+  -Dextensions="infinispan-client"
+----
+
+Serialization uses a library called https://github.com/infinispan/protostream[Protostream, window="_blank"].
+
+*Annotation based*
+
+[source, java]
+----
+@ProtoFactory
+public Author(String name, String surname) {
+    this.name = name;
+    this.surname = surname;
+}
+
+@ProtoField(number = 1)
+public String getName() {
+    return name;
+}
+
+@ProtoField(number = 2)
+public String getSurname() {
+    return surname;
+}
+----
+
+Initializer to set configuration settings.
+
+[source, java]
+----
+@AutoProtoSchemaBuilder(includeClasses = 
+    { Book.class, Author.class }, 
+    schemaPackageName = "book_sample")
+interface BookContextInitializer 
+        extends SerializationContextInitializer {
+}
+----
+
+*User written based*
+
+There are three ways to create your schema:
+
+_Protofile_
+
+Creates a `.proto` file in the `META-INF` directory.
+
+[source, proto]
+----
+package book_sample;
+
+message Author {
+  required string name = 1;
+  required string surname = 2;
+}
+----
+
+In case of having a Collection field you need to use the `repeated` key (ie `repeated Author authors = 4`).
+
+_In code_
+
+Setting `proto` schema directly in a produced bean.
+
+[source, java]
+----
+@Produces
+FileDescriptorSource bookProtoDefinition() {
+    return FileDescriptorSource
+        .fromString("library.proto",   
+                    "package book_sample;\n" +
+                    "message Author {\n" +
+                    "  required string name = 1;\n" +
+                    "  required string surname = 2;\n" +
+                    "}");
+}
+----
+
+_Marshaller_
+
+Using `org.infinispan.protostream.MessageMarshaller` interface.
+
+[source, java]
+----
+public class AuthorMarshaller 
+    implements MessageMarshaller<Author> {
+
+   @Override
+   public String getTypeName() {
+      return "book_sample.Author";
+   }
+
+   @Override
+   public Class<? extends Author> getJavaClass() {
+      return Author.class;
+   }
+
+   @Override
+   public void writeTo(ProtoStreamWriter writer, 
+                    Author author) throws IOException {
+      writer.writeString("name", author.getName());
+      writer.writeString("surname", author.getSurname());
+   }
+
+   @Override
+   public Author readFrom(ProtoStreamReader reader) 
+        throws IOException {
+      String name = reader.readString("name");
+      String surname = reader.readString("surname");
+      return new Author(name, surname);
+   }
+}
+----
+
+And producing the marshaller:
+
+[source, java]
+----
+@Produces
+MessageMarshaller authorMarshaller() {
+    return new AuthorMarshaller();
+}
+----
+// end::update_8_7[]
 
 == Flyway
 // tag::update_1_7[]
@@ -684,6 +812,8 @@ a| For `java.math.BigDecimal` or `java.math.BigInteger` that you need higher pre
 
 == Amazon DynamoDB
 // tag::update_5_6[]
+// tag::update_8_3[]
+
 Quarkus integrates with https://aws.amazon.com/dynamodb/[Amazon DynamoDB, window="_blank"]:
 
 [source, bash]
@@ -694,12 +824,306 @@ Quarkus integrates with https://aws.amazon.com/dynamodb/[Amazon DynamoDB, window
 
 [source, java]
 ----
-void onStart(@Observes StartupEvent ev) {
-    DynamoDbAsyncClient asyncClient = DynamoDbAsyncClient.create();
-    DynamoDbClient client = DynamoDbClient.create();
-}
+@Inject
+DynamoDbClient dynamoDB;
+
+@Inject
+DynamoDbAsyncClient dynamoDB;
 ----
+
+To use it as a local DynamoDB instance:
+
+[source, properties]
+----
+quarkus.dynamodb.region=
+    eu-central-1
+quarkus.dynamodb.endpoint-override=
+    http://localhost:8000
+quarkus.dynamodb.credentials.type=STATIC
+quarkus.dynamodb.credentials.static-provider
+    .access-key-id=test-key
+quarkus.dynamodb.credentials.static-provider
+.secret-access-key=test-secret
+----
+
+If you want to work with an AWS account, you’d need to set it with:
+
+[source, java]
+----
+quarkus.dynamodb.region=<YOUR_REGION>
+quarkus.dynamodb.credentials.type=DEFAULT
+----
+
+`DEFAULT` credentials provider chain: 
+
+* System properties `aws.accessKeyId`, `aws.secretKey`
+* Env. Varables `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
+* Credentials profile `~/.aws/credentials`
+* Credentials through the Amazon EC2 container service if the `AWS_CONTAINER_CREDENTIALS_RELATIVE_URI` set
+* Credentials through Amazon EC2 metadata service.
+
+Configuration parameters prefixed with `quarkus.dynamodb`:
+
+|===	
+|Parameter | Default | Description
+a|`enable-endpoint-discovery`
+a|`false`
+a|Endpoint discovery for a service API that supports endpoint discovery.
+
+a|`endpoint-override`
+a|
+a|Configure the endpoint with which the SDK should communicate.
+
+a|`api-call-timeout`
+a|
+a|Time to complete an execution.
+
+a|`interceptors`
+a|
+a|List of class interceptors.
+|===
+
+Configuration parameters prefixed with `quarkus.dynamodb.aws`:
+
+|===	
+|Parameter | Default | Description
+
+a|`region`
+a|
+a|Region that hosts DynamoDB.
+
+a|`credentials.type`
+a|`DEFAULT`
+a| Credentials that should be used `DEFAULT`, `STATIC`, `SYSTEM_PROPERTY`, `ENV_VARIABLE`, `PROFILE`, `CONTAINER`, `INSTANCE_PROFILE`, `PROCESS`, `ANONYMOUS`
+|===
+
+Credentials specific parameters prefixed with `quarkus.dynamodb.aws.credentials`:
+
+|===	
+|Parameter | Default | Description
+
+3+|DEFAULT  
+
+a|`default-provider.async-credential-update-enabled`
+a|`false`
+a|Should fetch credentials async.
+
+a|`default-provider.reuse-last-provider-enabled`
+a|`true`
+a|Should reuse the last successful credentials.
+
+3+|STATIC
+
+a|`static-provider.access-key-id`
+a|
+a|AWS access key id.
+
+a|`static-provider.secret-access-key`
+a|
+a|AWS secret access key.
+
+3+|PROFILE
+
+a|`profile-provider.profile-name`
+a|`default`
+a|The name of the profile to use.
+
+3+|PROCESS
+
+a|`process-provider.command`
+a|
+a|Command to execute to retrieve credentials.
+
+a|`process-provider.process-output-limit`
+a|1024
+a|Max bytes to retrieve from process.
+
+a|`process-provider.credential-refresh-threshold`
+a|`PT15S`
+a|The amount of time between credentials expire and credentials refreshed.
+
+a|`process-provider.async-credential-update-enabled`
+a|`false`
+a|Should fetch credentials async.
+|===
+
+In case of synchronous client, the next parameters can be configured prefixed by `quarkus.dynamodb.sync-client`:
+
+|===	
+|Parameter | Default | Description
+
+a|`connection-acquisition-timeout`
+a|`10S`
+a|Connection acquisation timeout.
+
+a|`connection-max-idle-time`
+a|`60S`
+a|Max time to connection to be opened.
+
+a|`connection-timeout`
+a|
+a|Connection timeout.
+
+a|`connection-time-to-live`
+a|`0`
+a|Max time connection to be open.
+
+a|`socket-timeout`
+a|`30S`
+a|Time to wait for data.
+
+a|`max-connections`
+a|`50`
+a|Max connections.
+
+a|`expect-continue-enabled`
+a|`true`
+a|Client send an HTTP `expect-continue` handsake.
+
+a|`use-idle-connection-reaper`
+a|`true`
+a| Connections in pool should be closed asynchronously.
+
+a|`proxy.endpoint`
+a|
+a|Endpoint of the proxy server.
+
+a|`proxy.enabled`
+a|`false`
+a|Enables HTTP proxy.
+
+a|`proxy.username`
+a|
+a|Proxy username.
+
+a|`proxy.password`
+a|
+a|Proxy password.
+
+a|`proxy.ntlm-domain`
+a|
+a|For NTLM, domain name.
+
+a|`proxy.ntlm-workstation`
+a|
+a|For NTLM, workstation name.
+
+a|`proxy.preemptive-basic-authentication-enabled`
+a|
+a|Authenticate pre-emptively.
+
+a|`proxy.non-proxy-hosts`
+a|
+a|List of non proxy hosts.
+
+a|`tls-managers-provider.type`
+a|`system-property`
+a|TLS manager: `none`, `system-property`, `file-store`
+
+a|`tls-managers-provider.file-store.path`
+a|
+a|Path to key store.
+
+a|`tls-managers-provider.file-store.type`
+a|
+a|Key store type.
+
+a|`tls-managers-provider.file-store.password`
+a|
+a|Key store password.
+|===
+
+In case of asynchronous client, the next parameters can be configured prefixed by `quarkus.dynamodb.async-client`:
+
+|===	
+|Parameter | Default | Description
+
+a|`connection-acquisition-timeout`
+a|`10S`
+a|Connection acquisation timeout.
+
+a|`connection-max-idle-time`
+a|`60S`
+a|Max time to connection to be opened.
+
+a|`connection-timeout`
+a|
+a|Connection timeout.
+
+a|`connection-time-to-live`
+a|`0`
+a|Max time connection to be open.
+
+a|`max-concurrency`
+a|`50`
+a|Max number of concurrent connections.
+
+a|`use-idle-connection-reaper`
+a|`true`
+a|Connections in pool should be closed asynchronously.
+
+a|`read-timeout`
+a|`30S`
+a|Read timeout.
+
+a|`write-timeout`
+a|`30S`
+a|Write timeout.
+
+a|`proxy.endpoint`
+a|
+a|Endpoint of the proxy server.
+
+a|`proxy.enabled`
+a|`false`
+a|Enables HTTP proxy.
+
+a|`proxy.non-proxy-hosts`
+a|
+a|List of non proxy hosts.
+
+a|`tls-managers-provider.type`
+a|`system-property`
+a|TLS manager: `none`, `system-property`, `file-store`
+
+a|`tls-managers-provider.file-store.path`
+a|
+a|Path to key store.
+
+a|`tls-managers-provider.file-store.type`
+a|
+a|Key store type.
+
+a|`tls-managers-provider.file-store.password`
+a|
+a|Key store password.
+
+a|`ssl-provider`
+a|
+a|SSL Provider (`jdk`, `openssl`, `openssl-refcnt`).
+
+a|`protocol`
+a|`HTTP_1_1`
+a|Sets the HTTP protocol.
+
+a|`max-http2-streams`
+a|
+a|Max number of concurrent streams.
+
+a|`event-loop.override`
+a|`false`
+a| Enable custom event loop conf.
+
+a|`event-loop.number-of-threads`
+a|
+a|Number of threads to use in event loop.
+
+a|`event-loop.thread-name-prefix`
+a|`aws-java-sdk-NettyEventLoop`
+a| Prefix of thread names.
+|===
 // end::update_5_6[]
+// end::update_8_3[]
 
 == Neo4j
 // tag::update_5_7[]
@@ -719,26 +1143,27 @@ org.neo4j.driver.Driver driver;
 
 Configuration properties:
 
-<<<
-
 `quarkus.neo4j` as prefix is skipped in the next table.
 
 |===	
 |Parameter | Default | Description
 
 a|`uri`
-a|`bolt://localhost:7687`
+a|`localhost:7687`
 |URI of Neo4j.
 
-a|`authentication.username`
+a|`authentication`
+`.username`
 a|`neo4j`
 |Username.
 
-a|`authentication.password`
+a|`authentication`
+`.password`
 a|`neo4j`
 |Password.
 
-a|`authentication.disabled`
+a|`authentication`
+`.disabled`
 a|`false`
 |Disable authentication.
 
@@ -783,9 +1208,12 @@ And Quarkus Maven Plugin with next configuration:
             <goal>native-image</goal>
         </goals>
         <configuration>
-            <enableHttpUrlHandler>true</enableHttpUrlHandler>
-            <enableHttpsUrlHandler>true</enableHttpsUrlHandler>
-            <enableAllSecurityServices>true</enableAllSecurityServices>
+            <enableHttpUrlHandler>true
+            </enableHttpUrlHandler>
+            <enableHttpsUrlHandler>true
+            </enableHttpsUrlHandler>
+            <enableAllSecurityServices>true
+            </enableAllSecurityServices>
             <enableJni>true</enableJni>                
         </configuration>
     </execution>
