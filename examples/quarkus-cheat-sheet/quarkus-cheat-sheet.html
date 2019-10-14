@@ -15,7 +15,7 @@
 <div class="sectionbody">
 <p class=""><a href="https://quarkus.io/">Quarkus</a> is a Kubernetes Native Java stack tailored for GraalVM &amp; OpenJDK HotSpot, crafted from the best of breed Java libraries and standards.
 Also focused on developer experience, making things just work with little to no configuration and allowing to do live coding.</p>
-<p class="">Cheat-sheet tested with <strong>Quarkus 0.23.1</strong>.</p>
+<p class="">Cheat-sheet tested with <strong>Quarkus 0.24.0</strong>.</p>
 </div>
 </div>
 <div class="sect1">
@@ -24,7 +24,7 @@ Also focused on developer experience, making things just work with little to no 
 <p class="">Quarkus comes with a Maven archetype to scaffold a very simple starting project.</p>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">mvn io.quarkus:quarkus-maven-plugin:0.23.1:create \
+<pre class="highlightjs highlight"><code data-lang="bash" class="language-bash hljs">mvn io.quarkus:quarkus-maven-plugin:0.24.0:create \
     -DprojectGroupId=org.acme \
     -DprojectArtifactId=getting-started \
     -DclassName="org.acme.quickstart.GreetingResource" \
@@ -5331,7 +5331,7 @@ public class GreetingController {
 </div>
 </div>
 <p class="">Supported annotations are: <code>RestController</code>, <code>RequestMapping</code>, <code>GetMapping</code>, <code>PostMapping</code>, <code>PutMapping</code>, <code>DeleteMapping</code>, <code>PatchMapping</code>, <code>RequestParam, `RequestHeader</code>, <code>MatrixVariable</code>, <code>PathVariable</code>, <code>CookieValue</code>, <code>RequestBody</code>, <code>ResponseStatus</code>, <code>ExceptionHandler</code> and <code>RestControllerAdvice</code>.</p>
-<p class=""><strong>TIP:</strong> If you scaffold the project with <code>spring-web</code> extension, then Spring Web annotations are sed in the generated project. <code>mvn io.quarkus:quarkus-maven-plugin:0.23.1:create &#8230;&#8203; -Dextensions="spring-web"</code>.</p>
+<p class=""><strong>TIP:</strong> If you scaffold the project with <code>spring-web</code> extension, then Spring Web annotations are sed in the generated project. <code>mvn io.quarkus:quarkus-maven-plugin:0.24.0:create &#8230;&#8203; -Dextensions="spring-web"</code>.</p>
 </div>
 </div>
 <div class="sect1">
@@ -5440,7 +5440,7 @@ void deleteByRating(@Param("rating") String rating);</code></pre>
 <div class="author-bio">Java Champion and Director of DevExp at Red Hat</div>
 </div>
 
-<div class="author-bio">0.23.1</div>
+<div class="author-bio">0.24.0</div>
 <img src="./redhat/assets/by-nc-sa.png"/>
 </div>
 
