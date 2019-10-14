@@ -15,6 +15,62 @@ In this page you can either read what has been added in each version of the chea
 [[whatsnew]]
 == What's New in Cheat-Sheet
 
+=== Version 0.24.0
+
+.Grouping Configuration Properties
+[%collapsible]
+====
+include::core.adoc[tag=update_9_1]
+====
+
+.Panache MongoDB
+[%collapsible]
+====
+include::persistence.adoc[tag=update_9_2]
+====
+
+.Panache JPA Pagination
+[%collapsible]
+====
+include::persistence.adoc[tag=update_9_3]
+====
+
+.Named Lambda Request Handlers
+[%collapsible]
+====
+include::cloud.adoc[tag=update_9_4]
+====
+
+.Vert.X Filters and Routes
+[%collapsible]
+====
+include::network.adoc[tag=update_9_5]
+====
+
+.Change Context of Static Web Resources
+[%collapsible]
+====
+include::misc.adoc[tag=update_9_6]
+====
+
+.Security with a JDBC Realm
+[%collapsible]
+====
+include::security.adoc[tag=update_9_7]
+====
+
+.XML Marshalling/Unmarshalling
+[%collapsible]
+====
+include::core.adoc[tag=update_9_8]
+====
+
+.Multiple datasources
+[%collapsible]
+====
+include::persistence.adoc[tag=update_9_9]
+====
+
 === Version 0.23.0
 
 .JGit

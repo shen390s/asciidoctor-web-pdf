@@ -154,6 +154,43 @@ public class ErrorMapper
 ----
 // end::update_5_1[]
 
+== Vert.X Filters and Routes
+
+// tag::update_9_5[]
+You can also register Vert.X Filters and Router programmatically inside a CDI bean:
+
+[source, java]
+----
+import io.quarkus.vertx.http.runtime.filters.Filters;
+import io.vertx.ext.web.Router;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.Observes;
+
+@ApplicationScoped
+public class MyBean {
+
+    public void filters(
+            @Observes Filters filters) {
+        filters
+            .register(
+                rc -> {
+                    rc.response()
+                        .putHeader("X-Filter", "filter 1");
+                    rc.next();
+                },
+                10);
+    }
+
+    public void routes(
+            @Observes Router router) {
+        router
+            .get("/")
+            .handler(rc -> rc.response().end("OK"));
+    }
+}
+----
+// end::update_9_5[]
+
 == GZip Support
 // tag::update_7_4[]
 
@@ -592,8 +629,11 @@ Configure JDBC driver apart from tracing properties seen before:
 [source, properties]
 ----
 # add ':tracing' to your database URL
-quarkus.datasource.url=jdbc:tracing:postgresql://localhost:5432/mydatabase
-quarkus.datasource.driver=io.opentracing.contrib.jdbc.TracingDriver
-quarkus.hibernate-orm.dialect=org.hibernate.dialect.PostgreSQLDialect
+quarkus.datasource.url=
+    jdbc:tracing:postgresql://localhost:5432/mydatabase
+quarkus.datasource.driver=
+    io.opentracing.contrib.jdbc.TracingDriver
+quarkus.hibernate-orm.dialect=
+    org.hibernate.dialect.PostgreSQLDialect
 ----
 // end::update_8_12[]
