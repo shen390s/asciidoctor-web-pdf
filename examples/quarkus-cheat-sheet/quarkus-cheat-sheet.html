@@ -351,8 +351,9 @@ public class InMemoryConfig implements ConfigSource {
 </div>
 </div>
 <p class="">Then you need to register the <code>ConfigSource</code> as Java service.
-Create a file <code>/META-INF/services/org.eclipse.microprofile.config.spi.ConfigSource</code> with next content:</p>
+Create a file with the following content:</p>
 <div class="listingblock">
+<div class="title">/META-INF/services/org.eclipse.microprofile.config.spi.ConfigSource</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-none hljs">com.acme.config.InMemoryConfig</code></pre>
 </div>
@@ -378,8 +379,9 @@ public class CustomInstantConverter
 </div>
 <p class=""><code>@Priority</code> annotation is used to override the default <code>InstantConverter</code>.</p>
 <p class="">Then you need to register the <code>Converter</code> as Java service.
-Create a file <code>/META-INF/services/org.eclipse.microprofile.config.spi.Converter</code> with next content:</p>
+Create a file with the following content:</p>
 <div class="listingblock">
+<div class="title">/META-INF/services/org.eclipse.microprofile.config.spi.Converter</div>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-none hljs">com.acme.config.CustomInstantConverter</code></pre>
 </div>

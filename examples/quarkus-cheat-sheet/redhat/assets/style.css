@@ -66,7 +66,7 @@ h1 {
 section.content {
   margin: 0.5cm;
   padding: 0;
-  columns: auto calc((100vw / 3) - 3cm);
+  columns: 3;
 }
 
 .admonitionblock div {
@@ -78,9 +78,8 @@ section.content {
 }
 
 .sect1 {
-  max-width: calc((100vw / 3) - 3cm);
-  margin-right: 1.2cm;
-  margin-left: 1.2cm;
+  margin-right: 1cm;
+  margin-left: 1cm;
   margin-bottom: 0.5cm;
   break-inside: avoid-region;
 }
@@ -184,4 +183,11 @@ pre > code {
 
 .listingblock pre, .listingblock pre[class] {
   padding: 0.25em;
+}
+
+.listingblock > .title {
+  color: #d14;
+  font-family: monospace;
+  font-size: 0.7em;
+  margin-bottom: -.5em;
 }

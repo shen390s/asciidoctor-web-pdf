@@ -114,7 +114,7 @@ To add configuration to your application, Quarkus relies on https://github.com/e
 @ConfigProperty(name = "greetings.message")
 String message;
 
-@ConfigProperty(name = "greetings.message", 
+@ConfigProperty(name = "greetings.message",
                 defaultValue = "Hello")
 String messageWithDefault;
 
@@ -222,7 +222,7 @@ Also you can use an interface approach:
 ----
 @ConfigProperties(prefix = "greeting")
 public interface GreetingConfiguration {
-    
+
     @ConfigProperty(name = "message")
     String message();
     String getSuffix();
@@ -238,7 +238,7 @@ Nested objects are also supporte:
 public class GreetingConfiguration {
     public String message;
     public HiddenConfig hidden;
-    
+
     public static class HiddenConfig {
         public List<String> recipients;
     }
@@ -262,7 +262,7 @@ Bean Validation is also supported so properties are validated at startup time, f
 
 *Custom Loader*
 
-You can implement your own `ConfigSource` to load configuration from different places than the default ones provided by Quarkus. 
+You can implement your own `ConfigSource` to load configuration from different places than the default ones provided by Quarkus.
 For example, database, custom XML, REST Endpoints, ...
 
 You need to create a new class and implement `ConfigSource` interface:
@@ -271,9 +271,9 @@ You need to create a new class and implement `ConfigSource` interface:
 ----
 package com.acme.config;
 public class InMemoryConfig implements ConfigSource {
-    
+
     private Map<String, String> prop = new HashMap<>();
-    
+
     public InMemoryConfig() {
         // Init properties
     }
@@ -301,9 +301,10 @@ public class InMemoryConfig implements ConfigSource {
 }
 ----
 
-Then you need to register the `ConfigSource` as Java service. 
-Create a file `/META-INF/services/org.eclipse.microprofile.config.spi.ConfigSource` with next content:
+Then you need to register the `ConfigSource` as Java service.
+Create a file with the following content:
 
+./META-INF/services/org.eclipse.microprofile.config.spi.ConfigSource
 [source]
 ----
 com.acme.config.InMemoryConfig
@@ -319,7 +320,7 @@ Implement `org.eclipse.microprofile.config.spi.Converter` interface:
 [source, java]
 ----
 @Priority(DEFAULT_QUARKUS_CONVERTER_PRIORITY + 100)
-public class CustomInstantConverter 
+public class CustomInstantConverter
     implements Converter<Instant> {
 
     @Override
@@ -334,9 +335,10 @@ public class CustomInstantConverter
 
 `@Priority` annotation is used to override the default `InstantConverter`.
 
-Then you need to register the `Converter` as Java service. 
-Create a file `/META-INF/services/org.eclipse.microprofile.config.spi.Converter` with next content:
+Then you need to register the `Converter` as Java service.
+Create a file with the following content:
 
+./META-INF/services/org.eclipse.microprofile.config.spi.Converter
 [source]
 ----
 com.acme.config.CustomInstantConverter
@@ -345,7 +347,7 @@ com.acme.config.CustomInstantConverter
 
 == Custom Context Path
 // tag::update_6_2[]
-By default Undertow will serve content from under the root context. 
+By default Undertow will serve content from under the root context.
 If you want to change this you can use the `quarkus.servlet.context-path` config key to set the context path.
 // end::update_6_2[]
 
@@ -444,7 +446,7 @@ To work with `JSON-B` you need to add a dependency:
 
 [source, bash]
 ----
-./mvnw quarkus:add-extension 
+./mvnw quarkus:add-extension
   -Dextensions="io.quarkus:quarkus-resteasy-jsonb"
 ----
 
@@ -488,7 +490,7 @@ To work with `Jackson` you need to add:
 
 [source, bash]
 ----
-./mvnw quarkus:add-extension 
+./mvnw quarkus:add-extension
   -Dextensions="quarkus-resteasy-jackson"
 ----
 
@@ -516,7 +518,7 @@ To work with `JAX-B` you need to add a dependency:
 
 [source, bash]
 ----
-./mvnw quarkus:add-extension 
+./mvnw quarkus:add-extension
   -Dextensions="quarkus-resteasy-jaxb"
 ----
 
@@ -542,7 +544,7 @@ Quarkus uses https://hibernate.org/validator/[Hibernate Validator, window="_blan
 
 [source, bash]
 ----
-./mvnw quarkus:add-extension 
+./mvnw quarkus:add-extension
   -Dextensions="io.quarkus:quarkus-hibernate-validator"
 ----
 
@@ -576,7 +578,7 @@ First you need to create the custom annotation:
 
 [source, java]
 ----
-@Target({ METHOD, FIELD, ANNOTATION_TYPE, CONSTRUCTOR, 
+@Target({ METHOD, FIELD, ANNOTATION_TYPE, CONSTRUCTOR,
             PARAMETER, TYPE_USE })
 @Retention(RUNTIME)
 @Documented
@@ -590,16 +592,16 @@ public @interface NotExpired {
 }
 ----
 
-You need to implement the validator logic in a class that implements `ConstraintValidator`. 
+You need to implement the validator logic in a class that implements `ConstraintValidator`.
 
 [source, java]
 ----
-public class NotExpiredValidator 
-    implements ConstraintValidator<NotExpired, LocalDate> 
+public class NotExpiredValidator
+    implements ConstraintValidator<NotExpired, LocalDate>
     {
 
     @Override
-    public boolean isValid(LocalDate value, 
+    public boolean isValid(LocalDate value,
                         ConstraintValidatorContext ctx) {
         if ( value == null ) return true;
         LocalDate today = LocalDate.now();
@@ -631,7 +633,7 @@ And use it:
 
 [source, java]
 ----
-Set<ConstraintViolation<Sauce>> violations = 
+Set<ConstraintViolation<Sauce>> violations =
             validator.validate(sauce);
 ----
 
@@ -649,7 +651,7 @@ quarkus.log.category."com.lordofthejars".level=DEBUG
 
 Prefix is `quarkus.log`.
 
-|===	
+|===
 | Property | Default | Description
 a|`category."<category-name>".level`
 a|`INFO`
@@ -786,7 +788,7 @@ Quarkus implements https://github.com/eclipse/microprofile-rest-client[MicroProf
 
 [source, bash]
 ----
-./mvnw quarkus:add-extension 
+./mvnw quarkus:add-extension
   -Dextensions="io.quarkus:quarkus-rest-client"
 ----
 
@@ -799,13 +801,13 @@ To get content from http://worldclockapi.com/api/json/cet/now you need to create
 public interface WorldClockService {
 
     @GET @Path("/json/cet/now")
-    @Produces(MediaType.APPLICATION_JSON) 
+    @Produces(MediaType.APPLICATION_JSON)
     WorldClock getNow();
 
     @GET
     @Path("/json/{where}/now")
-    @Produces(MediaType.APPLICATION_JSON) 
-    WorldClock getSauce(@BeanParam 
+    @Produces(MediaType.APPLICATION_JSON)
+    WorldClock getSauce(@BeanParam
                     WorldClockOptions worldClockOptions);
 
 }
@@ -818,7 +820,7 @@ public class WorldClockOptions {
     String auth;
 
     @PathParam("where")
-    String where;   
+    String where;
 }
 ----
 
@@ -857,11 +859,11 @@ You can customize the headers passed by implementing MicroProfile `ClientHeaders
 [source, java]
 ----
 @RegisterForReflection
-public class BaggageHeadersFactory 
+public class BaggageHeadersFactory
                 implements ClientHeadersFactory {
     @Override
     public MultivaluedMap<String, String> update(
-        MultivaluedMap<String, String> incomingHeaders, 
+        MultivaluedMap<String, String> incomingHeaders,
         MultivaluedMap<String, String> outgoingHeaders) {}
 }
 ----
@@ -891,7 +893,7 @@ A method on client interface can return a `CompletionStage` class to be executed
 [source, java]
 ----
 @GET @Path("/json/cet/now")
-@Produces(MediaType.APPLICATION_JSON) 
+@Produces(MediaType.APPLICATION_JSON)
 CompletionStage<WorldClock> getNow();
 ----
 
@@ -974,14 +976,14 @@ public class GreetingResourceTest {
     }
 }
 ----
-    
+
 Test port can be set in `quarkus.http.test-port` property.
 
 You can also inject the URL where Quarkus is started:
 
 [source, java]
 ----
-@TestHTTPResource("index.html") 
+@TestHTTPResource("index.html")
 URL url;
 ----
 
@@ -994,12 +996,12 @@ You need to create a class implementing `QuarkusTestResourceLifecycleManager` in
 
 [source, java]
 ----
-public class MyCustomTestResource 
+public class MyCustomTestResource
     implements QuarkusTestResourceLifecycleManager {
 
     @Override
     public Map<String, String> start() {
-        // return system properties that 
+        // return system properties that
         // should be set for the running test
         return Collections.emptyMap();
     }
@@ -1033,7 +1035,7 @@ public class MyTest {
 ----
 
 // end::update_4_2[]
-*Mocking* 
+*Mocking*
 
 If you need to provide an alternative implementation of a service (for testing purposes) you can do it by using CDI `@Alternative` annotation using it in the test service placed at `src/test/java`:
 
