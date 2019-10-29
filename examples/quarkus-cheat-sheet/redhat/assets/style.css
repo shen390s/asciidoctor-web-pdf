@@ -2,15 +2,51 @@
 
 @page {
   size: 508mm 361mm;
-  margin: 0.5cm;
-  padding: 0.5cm;
+  margin: 1em;
+  margin-right: 0.5em;
+  margin-left: 0.5em;
+  padding: 1em;
+  padding-right: 0.5em;
+  padding-left: 0.5em;
 }
 
 @page :first {
   margin: 0;
   padding: 0;
-  padding-bottom: 0.5cm;
-  margin-bottom: 0.5cm;
+  padding-bottom: 1em;
+  margin-bottom: 1em;
+}
+
+div, dl, dt, dd, ul, ol, li, h1, h2, h3, #toctitle, .sidebarblock>.content>.title, h4, h5, h6, pre, form, p, blockquote, th, td {
+  margin: 0;
+  padding: 0;
+  direction: ltr;
+}
+
+p {
+  margin-bottom: 1.25rem;
+}
+
+ul, ol {
+  margin-left: 1.5em;
+}
+
+ul, ol, dl {
+  font-size: 1em;
+  line-height: 1.6;
+  margin-bottom: 1.25em;
+  list-style-position: outside;
+  font-family: inherit;
+}
+
+ol>li p, ul>li p, ul dd, ol dd, .olist .olist, .ulist .ulist, .ulist .olist, .olist .ulist {
+  margin-bottom: .625em;
+}
+
+a {
+  color: #1565c0;
+  text-decoration: underline;
+  line-height: inherit;
 }
 
 html, body {
@@ -81,14 +117,14 @@ section.content {
   margin-right: 1cm;
   margin-left: 1cm;
   margin-bottom: 0.5cm;
-  break-inside: avoid-region;
+  /*break-inside: avoid-column;*/
 }
 
 h2 {
   color: #131313;
   font-size: 1.4em;
   font-weight: 500;
-  margin-top: 0;
+  margin-bottom: .5em;
 }
 
 h3 {
@@ -112,11 +148,15 @@ h3 {
 }
 
 .listingblock {
-  margin-bottom: 2em;
+  margin-bottom: 1.25em;
 }
 
-a {
+h2 > a {
   color: #131313;
+  text-decoration: none;
+}
+
+.authors a {
   text-decoration: none;
 }
 
@@ -190,6 +230,10 @@ pre > code {
   font-family: monospace;
   font-size: 0.7em;
   margin-bottom: -.5em;
+}
+
+table {
+  margin-bottom: 1.25em;
 }
 
 .admonitionblock > table {
