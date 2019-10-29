@@ -771,7 +771,7 @@ public class LibraryResource {
     }
 ----
 
-*IMPORTANT* When not using Hibernate ORM, index data using `Search.getSearchSession(em).createIndexer()` `.startAndWait()` at startup time.
+IMPORTANT: When not using Hibernate ORM, index data using `Search.getSearchSession(em).createIndexer()` `.startAndWait()` at startup time.
 
 Configure the extension in `application.properties`:
 
@@ -1551,7 +1551,7 @@ Panache Queries equivalence in MongoDB:
 * `lastname like ?1` -> `{'lastname': {'$regex': ?1}}`
 * `lastname is not null` -> `{'lastname':{'$exists': true}}`
 
-*WARNING:* PanacheQL refers to the Object parameter name but native queries refer to MongoDB field names.
+WARNING: PanacheQL refers to the Object parameter name but native queries refer to MongoDB field names.
 
 *DAO pattern*
 

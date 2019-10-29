@@ -244,7 +244,7 @@ a|`mailer.key-store-password`
 |===
 // tag::update_3_7[]
 // tag::update_6_x[]
-*IMPORTANT:*  if you enable SSL for the mailer and you want to build a native executable, you will need to enable the SSL support `quarkus.ssl.native=true`. 
+IMPORTANT: if you enable SSL for the mailer and you want to build a native executable, you will need to enable the SSL support `quarkus.ssl.native=true`. 
 // end::update_6_x[]
 
 *Testing*
@@ -386,7 +386,7 @@ try (Git git = Git.cloneRepository()
 }
 ----
 
-*IMPORTANT:* When running in native mode, make sure to configure SSL access correctly `quarkus.ssl.native=true` (https://quarkus.io/guides/native-and-ssl-guide[Native and SSL, window="_blank"]). 
+IMPORTANT: When running in native mode, make sure to configure SSL access correctly `quarkus.ssl.native=true` (https://quarkus.io/guides/native-and-ssl-guide[Native and SSL, window="_blank"]). 
 // end::update_8_1[]
 
 == Web Resources

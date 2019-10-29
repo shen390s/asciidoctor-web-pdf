@@ -203,9 +203,9 @@ a|
 a|The client secret
 |===
 
-*NOTE:*  With Keycloak OIDC server `https://host:port/auth/realms/{realm}` where `{realm}` has to be replaced by the name of the Keycloak realm.
+NOTE:  With Keycloak OIDC server `https://host:port/auth/realms/{realm}` where `{realm}` has to be replaced by the name of the Keycloak realm.
 
-*TIP:* You can use `quarkus.http.cors` property to enable consuming form different domain.
+TIP: You can use `quarkus.http.cors` property to enable consuming form different domain.
 // end::update_1_9[]
 
 == OAuth2
@@ -561,7 +561,7 @@ quarkus.datasource.username=
 
 No password is set as it is fetched from Vault.
 
-*INFO:* https://www.vaultproject.io/docs/secrets/databases/index.html[dynamic database credentials] through the `database-credentials-role` property.
+INFO: https://www.vaultproject.io/docs/secrets/databases/index.html[dynamic database credentials] through the `database-credentials-role` property.
 
 Elytron JDBC Realm configuration properties.
 Prefix `quarkus.vault` is skipped.

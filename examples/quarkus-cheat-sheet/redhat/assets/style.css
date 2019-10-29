@@ -191,3 +191,72 @@ pre > code {
   font-size: 0.7em;
   margin-bottom: -.5em;
 }
+
+.admonitionblock > table {
+  border-collapse: separate;
+  border: 0;
+  background: none;
+  width: 100%
+}
+
+.admonitionblock > table td.icon {
+  text-align: center;
+  width: 40px;
+  height: 40px;
+  padding-right: 0.25em;
+}
+
+.admonitionblock > table td.icon img {
+  max-width: initial
+}
+
+.admonitionblock > table td.icon .title {
+  font-weight: bold;
+  text-transform: uppercase
+}
+
+.admonitionblock > table td.content {
+  padding-left: 0.5em;
+  border-left: 1px solid #ddddd8;
+  color: rgba(0, 0, 0, .75);
+}
+
+.admonitionblock > table td.content > :last-child > :last-child {
+  margin-bottom: 0
+}
+
+.admonitionblock > table td.icon svg {
+  height: 2.5em;
+  width: 100%;
+  cursor: default;
+}
+.admonitionblock > table td.icon .fa-layers {
+  height: 100%;
+  width: 100%;
+}
+
+.admonitionblock > table td.icon svg.fa-hand-paper path,
+.admonitionblock > table td.icon svg.fa-lightbulb path {
+  fill: white;
+}
+
+.admonitionblock td.icon.icon-tip svg.fa-circle path {
+  fill: #338a37;
+}
+
+.admonitionblock td.icon.icon-caution svg.fa-circle path {
+  fill: #7c3479;
+}
+
+.admonitionblock td.icon.icon-note svg > path {
+  fill: #1565c0;
+}
+
+.admonitionblock td.icon.icon-warning svg > path {
+  fill: #b26610;
+}
+
+.admonitionblock td.icon.icon-important svg > path {
+  fill: #ab2424;
+}
+

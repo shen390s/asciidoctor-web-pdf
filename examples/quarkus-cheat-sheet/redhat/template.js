@@ -1,3 +1,32 @@
+const { layer: faLayer, icon: faIcon, dom: faDom, library: faLibrary } = require('@fortawesome/fontawesome-svg-core')
+const { faCircle, faInfoCircle, faExclamationCircle, faQuestionCircle, faExclamationTriangle, faHandPaper, fas } = require('@fortawesome/free-solid-svg-icons')
+const { faLightbulb, far } = require('@fortawesome/free-regular-svg-icons')
+const { fab } = require('@fortawesome/free-brands-svg-icons')
+faLibrary.add(fas, far, fab)
+
+const faDefaultIcon = faIcon(faQuestionCircle)
+const faImportantIcon = faIcon(faExclamationCircle)
+const faNoteIcon = faIcon(faInfoCircle)
+const faWarningIcon = faIcon(faExclamationTriangle)
+const faCautionIcon = faLayer((push) => {
+  push(faIcon(faCircle))
+  push(faIcon(faHandPaper, {transform: { size: 10, x: -0.5 }}))
+
+})
+const faTipIcon = faLayer((push) => {
+  push(faIcon(faCircle))
+  push(faIcon(faLightbulb, {transform: { size: 10 }}))
+})
+
+const isSvgIconEnabled = (node) => node.getDocument().isAttribute('icontype', 'svg') || node.getDocument().isAttribute('icons', 'font')
+
+const fontAwesomeStyleContent = (node) => {
+  if (isSvgIconEnabled(node)) {
+    return faDom.css()
+  }
+  return ''
+}
+
 const assetUriScheme = (node) => {
   let result = node.getAttribute('asset-uri-scheme', 'https')
   if (result.trim() !== '') {
@@ -68,6 +97,9 @@ module.exports = {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<style>
+${fontAwesomeStyleContent(node)}
+</style>
 ${syntaxHighlighterHead(node, syntaxHighlighter, { linkcss: linkcss })}
 <link href="./redhat/assets/style.css" rel="stylesheet">
 </head>
@@ -89,5 +121,36 @@ ${renderAuthors(getAuthors(node))}
 ${syntaxHighlighterFooter(node, syntaxHighlighter, { cdn_base_url: cdnBaseUrl, linkcss: linkcss, self_closing_tag_slash: '/' })}
 </body>`
   },
-  page_break: () => `<div class="page-break"></div>`
+  page_break: () => `<div class="page-break"></div>`,
+  admonition: (node) => {
+    const idAttribute = node.getId() ? ` id="${node.getId()}"` : ''
+    const name = node.getAttribute('name')
+    const titleElement = node.getTitle() ? `<div class="title">${node.getTitle()}</div>\n` : ''
+    let icon
+    if (name === 'note') {
+      icon = faNoteIcon
+    } else if (name === 'important') {
+      icon = faImportantIcon
+    } else if (name === 'caution') {
+      icon = faCautionIcon
+    } else if (name === 'tip') {
+      icon = faTipIcon
+    } else if (name === 'warning') {
+      icon = faWarningIcon
+    } else {
+      icon = faDefaultIcon
+    }
+    return `<div${idAttribute} class="admonitionblock ${name}${node.getRole() ? node.getRole() : ''}">
+<table>
+<tr>
+<td class="icon icon-${name}">
+${icon.html}
+</td>
+<td class="content">
+${titleElement}${node.getContent()}
+</td>
+</tr>
+</table>
+</div>`
+  }
 }
