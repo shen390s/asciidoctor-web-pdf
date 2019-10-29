@@ -1,7 +1,6 @@
 #!/bin/bash
 
-asciidoctor examples/quarkus-cheat-sheet/site.adoc -o ./docs/index.html
-./bin/asciidoctor-pdf examples/quarkus-cheat-sheet/quarkus-cheat-sheet.adoc --template-require ./examples/quarkus-cheat-sheet/redhat/template.js
+npm run generate
 
 open ./docs/index.html
-open examples/quarkus-cheat-sheet/quarkus-cheat-sheet.pdf
+open ./src/quarkus-cheat-sheet/quarkus-cheat-sheet.pdf

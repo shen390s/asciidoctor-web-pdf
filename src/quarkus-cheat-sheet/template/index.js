@@ -101,12 +101,12 @@ module.exports = {
 ${fontAwesomeStyleContent(node)}
 </style>
 ${syntaxHighlighterHead(node, syntaxHighlighter, { linkcss: linkcss })}
-<link href="./redhat/assets/style.css" rel="stylesheet">
+<link href="./template/assets/style.css" rel="stylesheet">
 </head>
 <body>
 <header>
   <h1>${node.getHeader().getTitle()}</h1>
-  <img class="logo" src="./redhat/assets/${node.getAttribute('logo')}"/>
+  <img class="logo" src="./template/assets/${node.getAttribute('logo')}"/>
 </header>
 <section class="content">
 ${node.getContent()}
@@ -114,7 +114,7 @@ ${node.getContent()}
 <h3>Authors :</h3>
 ${renderAuthors(getAuthors(node))}
 <div class="author-bio">${node.getAttribute('version')}</div>
-<img src="./redhat/assets/by-nc-sa.png"/>
+<img src="./template/assets/by-nc-sa.png"/>
 </div>
 
 </section>

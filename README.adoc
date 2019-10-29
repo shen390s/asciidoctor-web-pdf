@@ -1,18 +1,12 @@
-= Asciidoctor.js PDF
+= Quarkus Cheat Sheet
 
-Convert AsciiDoc document to PDF using Asciidoctor.js and Puppeteer (Headless Chrome)
+== Install
 
-== About
+The Quarkus Cheat Sheet is written in https://asciidoctor.org/[AsciiDoc].
+To generate both the mini-site and PDF, please install the dependencies using `npm`:
 
-Inspired by an awesome project called https://github.com/RelaxedJS/ReLaXed/blob/master/src/index.js[Relaxed.JS].
+```console
+$ npm i
+```
 
-Asciidoctor.js PDF is using Headless Chrome to generate a beautiful PDF.
-It allows complex layouts to be defined with CSS and JavaScript, while writing the content in AsciiDoc.
-
-== Examples
-
-.Letter
- ./bin/asciidoctorjs-pdf examples/letter/letter.adoc --template-require ../examples/letter/template.js
-
-.Book
- ./bin/asciidoctorjs-pdf examples/book/book.adoc --template-require ../examples/book/template.js
+Then you can execute the script `generate.sh` or run the following command `npm run generate`.
