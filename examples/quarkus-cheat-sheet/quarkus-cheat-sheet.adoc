@@ -4,6 +4,7 @@ Alex Soto <https://twitter.com/alexsotob>;
 :authorbio: Java Champion and Director of DevExp at Red Hat
 :pdf-width: 508mm
 :pdf-height: 361mm
+:icons: font
 include::attributes.adoc[]
 endif::site[]
 

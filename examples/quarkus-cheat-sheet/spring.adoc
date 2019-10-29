@@ -104,7 +104,7 @@ Supported annotations are: `RestController`, `RequestMapping`, `GetMapping`, `Po
 // end::update_7_6[]
 
 // tag::update_8_5[]
-*TIP:* If you scaffold the project with `spring-web` extension, then Spring Web annotations are sed in the generated project. `mvn io.quarkus:quarkus-maven-plugin:{version}:create ... -Dextensions="spring-web"`.
+TIP: If you scaffold the project with `spring-web` extension, then Spring Web annotations are sed in the generated project. `mvn io.quarkus:quarkus-maven-plugin:{version}:create ... -Dextensions="spring-web"`.
 // end::update_8_5[]
 
 == Spring Data JPA
@@ -118,7 +118,7 @@ While users are encouraged to use Hibernate ORM with Panache for Relational Data
   -Dextensions="quarkus-spring-data-jpa"
 ----
 
-*INFO:* Of course you still need to add the JDBC driver, and configure it in `application.properties`.
+INFO: Of course you still need to add the JDBC driver, and configure it in `application.properties`.
 
 <<<
 
@@ -139,7 +139,7 @@ Interfaces supported:
 * `org.springframework.data.repository.PagingAndSortingRepository`
 * `org.springframework.data.jpa.repository.JpaRepository`.
 
-*INFO:* Generated repositories are automatically annotated with `@Transactional`.
+INFO: Generated repositories are automatically annotated with `@Transactional`.
 
 Repository fragments is also supported:
 
