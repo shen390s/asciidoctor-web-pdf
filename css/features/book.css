@@ -1,9 +1,17 @@
 #toc {
   break-before: page;
+  counter-reset: page;
+  /*page: tableofcontents;*/
 }
 
 #preamble {
   break-before: page;
+  counter-reset: page;
+  page: preamble;
+}
+
+.sect1:first-of-type {
+  counter-reset: page;
 }
 
 .sect1 {
@@ -12,4 +20,35 @@
 
 #cover {
   break-after: unset;
+  counter-reset: page;
+}
+
+@page tableofcontents {
+  @bottom-right {
+    margin: 0;
+    padding: 0;
+    border: none;
+    content: normal;
+  }
+  @bottom-left {
+    margin: 0;
+    padding: 0;
+    border: none;
+    content: normal;
+  }
+}
+
+@page preamble {
+  @bottom-right {
+    margin: 0;
+    padding: 0;
+    border: none;
+    content: normal;
+  }
+  @bottom-left {
+    margin: 0;
+    padding: 0;
+    border: none;
+    content: normal;
+  }
 }

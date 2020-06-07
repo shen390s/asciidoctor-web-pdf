@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+<head>
+<title>Title</title>
+<meta charset="UTF-8">
+<style>
+.pagedjs_pagebox > .pagedjs_area {
+    border: 1px solid black
+}
+
+#toc {
+  page: tableofcontents;
+}
+
+#preamble {
+  break-before: page;
+  page: preamble;
+}
+</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body class="book">
+<div id="cover" class="title-page">
+  <h1>Title</h1>
+  <h2></h2>
+</div>
+<div style="display: none;"><ul class="sectlevel1">
+<li class="toc-entry"><a href="#_section">Section</a></li>
+</ul></div>
+<div id="toc" class="toc">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li class="toc-entry"><a href="#_section">Section</a></li>
+</ul>
+</div>
+<div id="content" class="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p>This is a preamble.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_section">Section</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>This is a paragraph.</p>
+</div>
+</div>
+</div>
+</div>
+<script src="https://unpkg.com/pagedjs/dist/paged.polyfill.js"></script>
+</body>
+</html>

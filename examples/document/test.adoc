@@ -1,0 +1,10 @@
+= Title
+:title-page: false
+:toc: auto
+
+This is a preamble.
+
+== Section
+
+This is a paragraph.
+

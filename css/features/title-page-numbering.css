@@ -41,6 +41,14 @@
   }
 }
 
-.pagedjs_page.pagedjs_first_page {
-  counter-increment: page 0;
+.sect1:first-of-type {
+  counter-reset: page;
+}
+
+#toc {
+  counter-reset: page;
+}
+
+#preamble {
+  counter-reset: page;
 }
