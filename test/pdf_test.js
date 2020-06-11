@@ -284,16 +284,21 @@ describe('PDF converter', function () {
         featuresDescription = ` ${features.join(', ')}`
       }
       it(`should break pages accordingly when the document${featuresDescription}`, async () => {
+        let cliArgs = ''
         const options = {}
         options.attributes = {}
         options.attributes.reproducible = ''
+        cliArgs += '-a reproducible=""'
         if (scenario['title-page-attribute']) {
           options.attributes['title-page'] = ''
+          cliArgs += ' -a title-page=""'
         }
         if (scenario.toc !== false) {
           options.attributes.toc = scenario.toc
+          cliArgs += ` -a toc=${scenario.toc}`
         }
         options.doctype = scenario.doctype
+        cliArgs += ` --doctype=${scenario.doctype}`
         const outputFileName = `page-break-${scenario.doctype}-preamble_${scenario.preamble}-section_${scenario.section}-toc_${scenario.toc}-title-page-attribute_${scenario['title-page-attribute']}.pdf`
         const outputFile = `${__dirname}/output/${outputFileName}`
         let inputFileName
@@ -305,6 +310,11 @@ describe('PDF converter', function () {
           inputFileName = 'document-with-only-title.adoc'
         }
         const inputFile = `${__dirname}/fixtures/${inputFileName}`
+
+        /*
+        const execSync = require('child_process').execSync
+        execSync(`/home/guillaume/.rvm/gems/ruby-2.3.0/bin/asciidoctor-pdf ${cliArgs} ${inputFile} -o ${outputFile}`)
+        */
         const pdfDoc = await convert(inputFile, outputFile, options)
         expect(pdfDoc.getPages().length).to.equal(scenario['expected-page-number'])
         expect(outputFile).to.be.visuallyIdentical(outputFileName)

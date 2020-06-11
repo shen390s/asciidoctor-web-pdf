@@ -40,15 +40,3 @@
     content: normal;
   }
 }
-
-.sect1:first-of-type {
-  counter-reset: page;
-}
-
-#toc {
-  counter-reset: page;
-}
-
-#preamble {
-  counter-reset: page;
-}
