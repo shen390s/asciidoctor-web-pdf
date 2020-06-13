@@ -1,6 +1,6 @@
 #toc {
   break-before: page;
-  /*page: tableofcontents;*/
+  page: tableofcontents;
 }
 
 #preamble {
@@ -45,8 +45,3 @@
     content: normal;
   }
 }
-
-.sect1:first-of-type {
-  counter-reset: page;
-}
-
